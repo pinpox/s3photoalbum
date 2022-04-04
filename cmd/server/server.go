@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 	"html/template"
-	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/minio/minio-go/v7"
@@ -16,7 +18,8 @@ import (
 )
 
 var minioClient *minio.Client
-var photoBucket string
+var mediaBucket string
+var thumbnailBucket string
 
 var albumTemplate *template.Template
 var indexTemplate *template.Template
@@ -25,7 +28,8 @@ func main() {
 	endpoint := os.Getenv("S3_ENDPOINT")
 	accessKeyID := os.Getenv("S3_ACCESSKEY")
 	secretAccessKey := os.Getenv("S3_SECRETKEY")
-	photoBucket = os.Getenv("S3_BUCKET")
+	mediaBucket = os.Getenv("S3_BUCKET_MEDIA")
+	thumbnailBucket = os.Getenv("S3_BUCKET_THUMBNAILS")
 
 	useSSL := true
 
@@ -52,6 +56,8 @@ func main() {
 		log.Fatalln(err)
 	}
 
+	fmt.Println("starting")
+
 	router := httprouter.New()
 	router.GET("/", indexHandler)
 	router.GET("/albums/:album", albumHandler)
@@ -63,7 +69,10 @@ func main() {
 
 func albumHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
-	ad := albumData{
+	ad := struct {
+		Title  string
+		Images []string
+	}{
 		Title:  ps.ByName("album"),
 		Images: listObjectsByPrefix(ps.ByName("album") + "/"),
 	}
@@ -74,28 +83,69 @@ func albumHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 	}
 }
 
-type albumData struct {
-	Title  string
-	Images []string
-}
-
 func imageHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+
+	res := r.URL.Query().Get("thumbnail")
+	thumbnail, err := strconv.ParseBool(res)
+	if err != nil {
+		thumbnail = false
+	}
+
 	imgPath := ps.ByName("album") + "/" + ps.ByName("image")
 
-	object, err := minioClient.GetObject(context.Background(), photoBucket, imgPath, minio.GetObjectOptions{})
-	if err != nil {
-		fmt.Println(err)
-		return
+	// Set request parameters for content-disposition.
+	reqParams := make(url.Values)
+	// reqParams.Set("response-content-disposition", "attachment; filename=\""+ps.ByName("image")+"\"")
+
+	var presignedURL *url.URL
+
+	if thumbnail {
+
+		thumbPath := imgPath + ".jpg"
+
+		objInfo, err := minioClient.StatObject(context.Background(), thumbnailBucket, thumbPath, minio.StatObjectOptions{})
+		if err != nil {
+
+			errResponse := minio.ToErrorResponse(err)
+			if errResponse.Code == "NoSuchKey" {
+				// No thumbnails exists yet, fallback to full resolution
+				fmt.Printf("No thumbnail found for '%v' falling back to full res\n", thumbPath)
+				presignedURL, err = minioClient.PresignedGetObject(context.Background(), mediaBucket, imgPath, time.Second*1*60*60, reqParams)
+				if err != nil {
+					fmt.Println(err)
+					return
+				}
+
+			} else {
+				// A different error occured (e.g. access denied, bucket non-existant)
+				log.Fatal(err)
+			}
+
+		} else {
+			fmt.Println("Thumbnail exists:", objInfo)
+
+			presignedURL, err = minioClient.PresignedGetObject(context.Background(), thumbnailBucket, thumbPath, time.Second*1*60*60, reqParams)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+			fmt.Println("getting thumb")
+			fmt.Println(presignedURL)
+
+		}
+
+	} else {
+
+		// Generates a presigned url which expires in a hour.
+		presignedURL, err = minioClient.PresignedGetObject(context.Background(), mediaBucket, imgPath, time.Second*1*60*60, reqParams)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
 	}
+	// fmt.Println("Successfully generated presigned URL", presignedURL)
 
-	buf, err := ioutil.ReadAll(object)
-
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	w.Write(buf)
+	http.Redirect(w, r, presignedURL.String(), http.StatusSeeOther)
 
 }
 
@@ -105,7 +155,7 @@ func listObjectsByPrefix(prefix string) []string {
 	defer cancel()
 
 	// List objects
-	objectCh := minioClient.ListObjects(ctx, photoBucket, minio.ListObjectsOptions{
+	objectCh := minioClient.ListObjects(ctx, mediaBucket, minio.ListObjectsOptions{
 		Prefix:    prefix,
 		Recursive: false,
 	})

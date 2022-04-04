@@ -75,7 +75,7 @@
 										<div class="column">
 												{{range $index, $img := .Images}}
 												{{if incolumn 0 $index }}
-												<a href="/albums/{{$img}}" class="glightbox"> <img src="/albums/{{$img}}" alt="image" /> </a>
+												<a href="/albums/{{$img}}" class="glightbox"> <img src="/albums/{{$img}}?thumbnail=true" alt="image" /> </a>
 												{{end}}
 												{{else}} <strong>No Images</strong>
 												{{end}}
@@ -84,7 +84,7 @@
 										<div class="column">
 												{{range $index, $img := .Images}}
 												{{if incolumn 1 $index }}
-												<a href="/albums/{{$img}}" class="glightbox"> <img src="/albums/{{$img}}" alt="image" /> </a>
+												<a href="/albums/{{$img}}" class="glightbox"> <img src="/albums/{{$img}}?thumbnail=true" alt="image" /> </a>
 												{{end}}
 												{{else}} <strong>No Images</strong>
 												{{end}}
@@ -93,7 +93,7 @@
 										<div class="column">
 												{{range $index, $img := .Images}}
 												{{if incolumn 2 $index }}
-												<a href="/albums/{{$img}}" class="glightbox"> <img src="/albums/{{$img}}" alt="image" /> </a>
+												<a href="/albums/{{$img}}" class="glightbox"> <img src="/albums/{{$img}}?thumbnail=true" alt="image" /> </a>
 												{{end}}
 												{{else}} <strong>No Images</strong>
 												{{end}}
@@ -102,7 +102,7 @@
 										<div class="column">
 												{{range $index, $img := .Images}}
 												{{if incolumn 3 $index }}
-												<a href="/albums/{{$img}}" class="glightbox"> <img src="/albums/{{$img}}" alt="image" /> </a>
+												<a href="/albums/{{$img}}" class="glightbox"> <img src="/albums/{{$img}}?thumbnail=true" alt="image" /> </a>
 												{{end}}
 												{{else}} <strong>No Images</strong>
 												{{end}}
