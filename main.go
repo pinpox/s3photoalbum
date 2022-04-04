@@ -15,7 +15,7 @@ import (
 )
 
 var minioClient *minio.Client
-var photoBucket string = "golang-test"
+var photoBucket string
 
 var albumTemplate *template.Template
 
@@ -23,6 +23,8 @@ func main() {
 	endpoint := os.Getenv("S3_ENDPOINT")
 	accessKeyID := os.Getenv("S3_ACCESSKEY")
 	secretAccessKey := os.Getenv("S3_SECRETKEY")
+	photoBucket = os.Getenv("S3_BUCKET")
+
 	useSSL := true
 
 	var err error
@@ -34,8 +36,6 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	// albumTemplate.Funcs(template.FuncMap{"incolumn": func(colNum, index int) bool { return index%4 == colNum }})
-
 	// Initialize minio client object.
 	minioClient, err = minio.New(endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(accessKeyID, secretAccessKey, ""),
@@ -44,8 +44,6 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-
-	// log.Printf("%#v\n", minioClient) // minioClient is now setup
 
 	router := httprouter.New()
 	router.GET("/", indexHandler)
@@ -57,7 +55,6 @@ func main() {
 }
 
 func albumHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	// fmt.Fprintf(w, "album: %s\n", ps.ByName("album"))
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -79,12 +76,7 @@ func albumHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 			return
 		}
 		ad.Images = append(ad.Images, object.Key)
-		// fmt.Println(object.Key)
-		// fmt.Fprintf(w, "- %s\n", object.Key)
 	}
-
-	// tmpl := template.Must(template.ParseFiles("layout.html"))
-	// tmpl.Execute(w, ad)
 
 	err := albumTemplate.Execute(w, ad)
 	if err != nil {
@@ -115,10 +107,7 @@ func imageHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 
 	w.Write(buf)
 
-	// fmt.Fprintf(w, buf) //"album: %s, image: %s\n", ps.ByName("album"), ps.ByName("image"))
 }
-
-// func listSubfolders
 
 func indexHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
