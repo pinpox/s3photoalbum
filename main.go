@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/minio/minio-go/v7"
@@ -18,6 +19,7 @@ var minioClient *minio.Client
 var photoBucket string
 
 var albumTemplate *template.Template
+var indexTemplate *template.Template
 
 func main() {
 	endpoint := os.Getenv("S3_ENDPOINT")
@@ -29,9 +31,14 @@ func main() {
 
 	var err error
 
-	albumTemplate, err = template.New("layout.html").Funcs(template.FuncMap{
+	albumTemplate, err = template.New("album.html").Funcs(template.FuncMap{
 		"incolumn": func(colNum, index int) bool { return index%4 == colNum },
-	}).ParseFiles("layout.html")
+	}).ParseFiles("templates/album.html")
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	indexTemplate, err = template.New("index.html").ParseFiles("templates/index.html")
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -56,26 +63,9 @@ func main() {
 
 func albumHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
-	ctx, cancel := context.WithCancel(context.Background())
-
-	defer cancel()
-
-	objectCh := minioClient.ListObjects(ctx, photoBucket, minio.ListObjectsOptions{
-		Prefix:    ps.ByName("album") + "/",
-		Recursive: false,
-	})
-
 	ad := albumData{
 		Title:  ps.ByName("album"),
-		Images: []string{},
-	}
-
-	for object := range objectCh {
-		if object.Err != nil {
-			fmt.Println(object.Err)
-			return
-		}
-		ad.Images = append(ad.Images, object.Key)
+		Images: listObjectsByPrefix(ps.ByName("album") + "/"),
 	}
 
 	err := albumTemplate.Execute(w, ad)
@@ -109,25 +99,41 @@ func imageHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 
 }
 
-func indexHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func listObjectsByPrefix(prefix string) []string {
 
 	ctx, cancel := context.WithCancel(context.Background())
-
 	defer cancel()
 
 	// List objects
 	objectCh := minioClient.ListObjects(ctx, photoBucket, minio.ListObjectsOptions{
-		Prefix:    "/",
+		Prefix:    prefix,
 		Recursive: false,
 	})
 
+	ret := []string{}
 	for object := range objectCh {
 		if object.Err != nil {
 			fmt.Println(object.Err)
-			return
+			return ret
 		}
-		fmt.Println(object.Key)
-		fmt.Fprintf(w, "- %s\n", object.Key)
+		ret = append(ret, strings.TrimSuffix(object.Key, "/"))
+	}
+	return ret
+}
 
+func indexHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+
+	tmpldata := struct {
+		Title  string
+		Albums []string
+	}{
+		Title:  "Albums",
+		Albums: listObjectsByPrefix("/"),
+	}
+
+	err := indexTemplate.Execute(w, tmpldata)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
