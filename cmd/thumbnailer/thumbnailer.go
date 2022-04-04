@@ -20,11 +20,6 @@ var minioClient *minio.Client
 var mediaBucket string
 var thumbnailBucket string
 
-func genrateThumb(file string) error {
-
-	return nil
-}
-
 func makeThumbnail(key, contentType string) error {
 
 	fmt.Println("Making thumbnail for:", key)
@@ -42,18 +37,17 @@ func makeThumbnail(key, contentType string) error {
 	if err != nil {
 		return err
 	}
-	thumbnail := imaging.Thumbnail(img, 100, 100, imaging.CatmullRom)
+
+	// For fixed size thumbnails
+	// thumbnail := imaging.Thumbnail(img, 100, 100, imaging.CatmullRom)
+	// Leaving height at 0 keeps the original aspect ratio
+	thumbnail := imaging.Resize(img, 200, 0, imaging.CatmullRom)
 
 	var b bytes.Buffer
 	w := bufio.NewWriter(&b)
 
-	err = jpeg.Encode(w, thumbnail, &jpeg.Options{90})
+	err = jpeg.Encode(w, thumbnail, &jpeg.Options{Quality: 90})
 
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	// fileStat, err := b.Bytes().Stat() //thumbnail.Stat()
 	if err != nil {
 		fmt.Println(err)
 		return err
@@ -72,15 +66,6 @@ func makeThumbnail(key, contentType string) error {
 
 	fmt.Println("Successfully uploaded bytes: ", uploadInfo)
 
-	// thumbnail.strop()
-
-	// err = imaging.Save(thumbnail, "outimag.jpg")
-	// if err != nil {
-	// 	panic(err)
-	// }
-
-	// fmt.Printf("Saved to %v", tmpFilePath)
-	// upload
 	return nil
 }
 
@@ -95,14 +80,6 @@ func main() {
 	useSSL := true
 
 	var err error
-	// Note: YOUR-ACCESSKEYID, YOUR-SECRETACCESSKEY and my-bucketname are
-	// dummy values, please replace them with original values.
-
-	// Requests are always secure (HTTPS) by default. Set secure=false to enable insecure (HTTP) access.
-	// This boolean value is the last argument for New().
-
-	// New returns an Amazon S3 compatible client object. API compatibility (v2 or v4) is automatically
-	// determined based on the Endpoint value.
 
 	// Initialize minio client object.
 	minioClient, err = minio.New(endpoint, &minio.Options{
@@ -113,9 +90,7 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	// s3Client.TraceOn(os.Stderr)
-
-	// Listen for bucket notifications on "mybucket" filtered by prefix, suffix and events.
+	// Listen for bucket notifications
 	for notificationInfo := range minioClient.ListenBucketNotification(context.Background(), mediaBucket, "", "", []string{
 		"s3:ObjectCreated:*",
 		"s3:ObjectAccessed:*",
