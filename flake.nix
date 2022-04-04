@@ -14,8 +14,8 @@
             version = "0.1";
 
             src = ./.;
-            vendorSha256 = "sha256-UG17gs2+AWmpYd1qDEVQ3byu2X128a3SXqC1PKTccH4=";
-            subPackages = [ "." ];
+            vendorSha256 = "sha256-1cgqoLbZzKBVUsaW0ssYBt0gqtuCYgMatREan1fJEbY=";
+            subPackages = [ "cmd/server" "cmd/thumbnailer" ];
 
             meta = with lib; {
               description = "TODO";
