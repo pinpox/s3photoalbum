@@ -32,7 +32,7 @@ func makeThumbnail(key, contentType string) error {
 	}
 
 	var img image.Image
-	img, err = imaging.Decode(object)
+	img, err = imaging.Decode(object, imaging.AutoOrientation(true))
 
 	if err != nil {
 		return err
