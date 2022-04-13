@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -20,6 +21,7 @@ import (
 var minioClient *minio.Client
 var mediaBucket string
 var thumbnailBucket string
+var templatesDir string
 
 var albumTemplate *template.Template
 var indexTemplate *template.Template
@@ -31,18 +33,23 @@ func main() {
 	mediaBucket = os.Getenv("S3_BUCKET_MEDIA")
 	thumbnailBucket = os.Getenv("S3_BUCKET_THUMBNAILS")
 
+	templatesDir = os.Getenv("TEMPLATES_DIR")
+	if len(templatesDir) == 0 {
+		templatesDir = "./templates"
+	}
+
 	useSSL := true
 
 	var err error
 
 	albumTemplate, err = template.New("album.html").Funcs(template.FuncMap{
 		"incolumn": func(colNum, index int) bool { return index%4 == colNum },
-	}).ParseFiles("templates/album.html")
+	}).ParseFiles(path.Join(templatesDir, "album.html"))
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	indexTemplate, err = template.New("index.html").ParseFiles("templates/index.html")
+	indexTemplate, err = template.New("index.html").ParseFiles(path.Join(templatesDir, "index.html"))
 	if err != nil {
 		log.Fatalln(err)
 	}
