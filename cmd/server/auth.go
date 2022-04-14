@@ -1,5 +1,7 @@
 package main
 import (
+
+	"golang.org/x/crypto/bcrypt"
     "errors"
     "fmt"
     "github.com/golang-jwt/jwt"
@@ -11,6 +13,30 @@ import (
 // TODO REPLACE
 // openssl rand -base64 172
 var jwtKey = []byte("FDr1VjVQiSiybYJrQZNt8Vfd7bFEsKP6vNX1brOSiWl0mAIVCxJiR4/T3zpAlBKc2/9Lw2ac4IwMElGZkssfj3dqwa7CQC7IIB+nVxiM1c9yfowAZw4WQJ86RCUTXaXvRX8JoNYlgXcRrK3BK0E/fKCOY1+izInW3abf0jEeN40HJLkXG6MZnYdhzLnPgLL/TnIFTTAbbItxqWBtkz6FkZTG+dkDSXN7xNUxlg==")
+
+
+
+
+
+
+func hashAndSalt(pwd string) (string, error) {
+
+    // Store this "hash" somewhere, e.g. in your database
+    // Use GenerateFromPassword to hash & salt pwd.
+    // MinCost is just an integer constant provided by the bcrypt
+    // package along with DefaultCost & MaxCost. 
+    // The cost can be any value you want provided it isn't lower
+    // than the MinCost (4)
+    hash, err := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.DefaultCost)
+    if err != nil {
+			return "", err
+
+    }
+    // GenerateFromPassword returns a byte slice so we need to
+    // convert the bytes to a string and return it
+    return string(hash), nil
+}
+
 
 type authClaims struct {
     jwt.StandardClaims

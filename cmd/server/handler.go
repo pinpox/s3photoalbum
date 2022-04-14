@@ -1,8 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt"
 	"net/http"
 )
 
@@ -13,18 +13,17 @@ func login(c *gin.Context) {
 
 	user, err := findUserByUsername(formUser)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": fmt.Sprintf("user %s not found", formUser),
-		})
+		// User not found
+		c.HTML(http.StatusOK, "login.html", "Authentication failed")
 		return
 	}
 
-	fmt.Println(user)
-
-	if user.Password != formPass {
-		c.HTML(http.StatusOK, "login.html", "Incorrect password")
+	// Comparing the password with the hash
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(formPass)); err != nil {
+		c.HTML(http.StatusOK, "login.html", "Authentication failed")
 		return
 	}
+
 	token, err := generateToken(*user)
 	if err != nil {
 		c.HTML(http.StatusOK, "login.html", "Authentication failed")
@@ -41,7 +40,6 @@ func login(c *gin.Context) {
 }
 
 func getUserInfo(c *gin.Context) {
-	fmt.Println("getting session")
 	id, _, ok := getSession(c)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{})

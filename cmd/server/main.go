@@ -97,8 +97,16 @@ func main() {
 	DB = db
 
 	// TODO users for testing
-	_, _ = insertUser("pin", "pin", 30)
-	_, _ = insertUser("pox", "pox", 25)
+	pinPass, err:= hashAndSalt("pin")
+	if err != nil {
+		log.Fatalln(err)
+	}
+	poxPass, err:= hashAndSalt("pox")
+	if err != nil {
+		log.Fatalln(err)
+	}
+	_, _ = insertUser("pin", pinPass, 30)
+	_, _ = insertUser("pox", poxPass, 25)
 
 	// Initialize minio client object.
 	minioClient, err = minio.New(endpoint, &minio.Options{
@@ -128,7 +136,7 @@ func main() {
 	r.Static("/static", "./static")
 
 	r.Use(verifyToken) //TODO fix
-	r.GET("/info", getUserInfo)
+	// r.GET("/me", getUserInfo)
 	r.GET("/", indexHandler)
 	r.GET("/albums/:album", albumHandler)
 	r.GET("/albums/:album/:image", imageHandler)
