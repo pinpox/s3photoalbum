@@ -29,21 +29,61 @@ body {
 		width: 100%;
 }
 
-				  /* Responsive layout - makes a two column-layout instead of four columns */
-				  @media screen and (max-width: 800px) {
-						  .column {
-								  flex: 50%;
-								  max-width: 50%;
-						  }
-				  }
+/* Responsive layout - makes a two column-layout instead of four columns */
+@media screen and (max-width: 800px) {
+		.column {
+				flex: 50%;
+				max-width: 50%;
+		}
+}
 
-				  /* Responsive layout - makes the two columns stack on top of each other instead of next to each other */
-				  @media screen and (max-width: 600px) {
-						  .column {
-								  flex: 100%;
-								  max-width: 100%;
-						  }
-				  }
+/* Responsive layout - makes the two columns stack on top of each other instead of next to each other */
+@media screen and (max-width: 600px) {
+		.column {
+				flex: 100%;
+				max-width: 100%;
+		}
+}
+
+.login {
+		display:flex;
+		flex-direction: column;
 
 
-						
+}
+.center {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+}
+
+.login-container {
+		height: 90vh;
+}
+
+input::placeholder {
+		text-align: center;
+}
+
+input{
+		border: 3px solid #6b1aed;
+		color: #6b1aed;
+		background-color: #1c1524;
+		text-align: center;
+
+}
+
+button{
+
+		background-color: #6b1aed;
+		color: #1c1524;
+		text-align: center;
+}
+
+input , button{
+		width: 100%;
+		padding: 8px 8px;
+		margin: 8px 0;
+		box-sizing: border-box;
+}
+

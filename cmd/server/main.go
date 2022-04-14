@@ -13,9 +13,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/julienschmidt/httprouter"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
+
+	"github.com/gin-gonic/gin"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
 
 var minioClient *minio.Client
@@ -23,36 +26,79 @@ var mediaBucket string
 var thumbnailBucket string
 var templatesDir string
 
-var albumTemplate *template.Template
-var indexTemplate *template.Template
+var DB *gorm.DB
+
+type User struct {
+	gorm.Model
+	Username string `json:"username"`
+	Password string `json:"password"`
+	Age      uint   `json:"age"`
+}
+
+func verifyToken(c *gin.Context) {
+
+	token, err := c.Cookie("token")
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{})
+		return
+	}
+
+	id, username, err := validateToken(token)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{})
+		return
+	}
+
+	c.Set("id", id)
+	c.Set("username", username)
+	c.Next()
+}
+
+func getSession(c *gin.Context) (uint, string, bool) {
+
+	fmt.Println("getting session")
+	id, ok := c.Get("id")
+	if !ok {
+		return 0, "", false
+	}
+	username, ok := c.Get("username")
+	if !ok {
+		return 0, "", false
+	}
+	return id.(uint), username.(string), true
+}
 
 func main() {
+
 	endpoint := os.Getenv("S3_ENDPOINT")
 	accessKeyID := os.Getenv("S3_ACCESSKEY")
 	secretAccessKey := os.Getenv("S3_SECRETKEY")
 	mediaBucket = os.Getenv("S3_BUCKET_MEDIA")
 	thumbnailBucket = os.Getenv("S3_BUCKET_THUMBNAILS")
+	useSSL := true
 
 	templatesDir = os.Getenv("TEMPLATES_DIR")
 	if len(templatesDir) == 0 {
 		templatesDir = "./templates"
 	}
 
-	useSSL := true
-
+	var db *gorm.DB
 	var err error
 
-	albumTemplate, err = template.New("album.html").Funcs(template.FuncMap{
-		"incolumn": func(colNum, index int) bool { return index%4 == colNum },
-	}).ParseFiles(path.Join(templatesDir, "album.html"))
+	// Setup database
+	// TODO use an actual file for persistance
+	db, err = gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	if err != nil {
-		log.Fatalln(err)
+		panic(err)
 	}
+	if err := db.AutoMigrate(&User{}); err != nil {
+		panic(err)
+	}
+	DB = db
 
-	indexTemplate, err = template.New("index.html").ParseFiles(path.Join(templatesDir, "index.html"))
-	if err != nil {
-		log.Fatalln(err)
-	}
+	// TODO users for testing
+	_, _ = insertUser("pin", "pin", 30)
+	_, _ = insertUser("pox", "pox", 25)
 
 	// Initialize minio client object.
 	minioClient, err = minio.New(endpoint, &minio.Options{
@@ -63,42 +109,59 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	fmt.Println("starting")
+	// Setup routes
+	r := gin.Default()
 
-	router := httprouter.New()
-	router.GET("/", indexHandler)
-	router.GET("/albums/:album", albumHandler)
-	router.GET("/albums/:album/:image", imageHandler)
-	router.ServeFiles("/static/*filepath", http.Dir("static"))
-	log.Fatal(http.ListenAndServe(":8080", router))
+	// r.Delims("{[{", "}]}")
+	r.SetFuncMap(template.FuncMap{
+		"incolumn": func(colNum, index int) bool { return index%4 == colNum },
+	})
+
+	r.LoadHTMLGlob(path.Join(templatesDir + "/*.html"))
+
+	r.POST("/login", login)
+
+	r.GET("/login", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "login.html", nil)
+	})
+
+	r.Static("/static", "./static")
+
+	r.Use(verifyToken) //TODO fix
+	r.GET("/info", getUserInfo)
+	r.GET("/", indexHandler)
+	r.GET("/albums/:album", albumHandler)
+	r.GET("/albums/:album/:image", imageHandler)
+
+	fmt.Println("starting gin")
+	if err := r.Run("localhost:7788"); err != nil {
+		panic(err)
+	}
 
 }
 
-func albumHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func albumHandler(c *gin.Context) {
 
 	ad := struct {
 		Title  string
 		Images []string
 	}{
-		Title:  ps.ByName("album"),
-		Images: listObjectsByPrefix(ps.ByName("album") + "/"),
+		Title:  c.Param("album"),
+		Images: listObjectsByPrefix(c.Param("album") + "/"),
 	}
 
-	err := albumTemplate.Execute(w, ad)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
+	c.HTML(http.StatusOK, "album.html", ad)
 }
 
-func imageHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func imageHandler(c *gin.Context) {
 
-	res := r.URL.Query().Get("thumbnail")
+	res := c.DefaultQuery("thumbnail", "false")
 	thumbnail, err := strconv.ParseBool(res)
 	if err != nil {
 		thumbnail = false
 	}
 
-	imgPath := ps.ByName("album") + "/" + ps.ByName("image")
+	imgPath := c.Param("album") + "/" + c.Param("image")
 
 	// Set request parameters for content-disposition.
 	reqParams := make(url.Values)
@@ -151,9 +214,7 @@ func imageHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 		}
 	}
 	// fmt.Println("Successfully generated presigned URL", presignedURL)
-
-	http.Redirect(w, r, presignedURL.String(), http.StatusSeeOther)
-
+	c.Redirect(http.StatusSeeOther, presignedURL.String())
 }
 
 func listObjectsByPrefix(prefix string) []string {
@@ -178,7 +239,7 @@ func listObjectsByPrefix(prefix string) []string {
 	return ret
 }
 
-func indexHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func indexHandler(c *gin.Context) {
 
 	tmpldata := struct {
 		Title  string
@@ -188,9 +249,5 @@ func indexHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 		Albums: listObjectsByPrefix("/"),
 	}
 
-	err := indexTemplate.Execute(w, tmpldata)
-
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
+	c.HTML(http.StatusOK, "index.html", tmpldata)
 }

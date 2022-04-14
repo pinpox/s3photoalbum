@@ -16,6 +16,12 @@
             src = ./.;
             vendorSha256 = "sha256-1cgqoLbZzKBVUsaW0ssYBt0gqtuCYgMatREan1fJEbY=";
             subPackages = [ "cmd/server" "cmd/thumbnailer" ];
+            installPhase = ''
+              mkdir -p $out
+              cp -r /build/go/bin $out
+              cp -r ./templates $out/share
+              '';
+
 
             meta = with lib; {
               description = "TODO";
