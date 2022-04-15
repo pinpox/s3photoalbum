@@ -96,7 +96,7 @@ in {
 
     users.groups = mkIf (cfg.group == "s3photoalbum") { s3photoalbum = { }; };
 
-    networking.firewall = mkIf cfg.openFirewall { allowedTCPPorts = [ 8083 ]; };
+    networking.firewall = mkIf cfg.openFirewall { allowedTCPPorts = [ 7788 ]; };
 
   };
   meta = { maintainers = with lib.maintainers; [ mayniklas ]; };
