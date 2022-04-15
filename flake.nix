@@ -8,7 +8,7 @@
       nixosModule = ({ pkgs, ... }: {
         imports = [ ./default.nix ];
         nixpkgs.overlays =
-          [ (_self: _super: { s3photoalbum = self.packages.${pkgs.system}; }) ];
+          [ (_self: _super: { s3photoalbum = self.packages.${pkgs.system}.s3photoalbum; }) ];
       });
 
     } //

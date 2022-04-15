@@ -1,4 +1,4 @@
-{ lib, pkgs, config, inputs, ... }:
+{ lib, pkgs, config, ... }:
 with lib;
 
 let cfg = config.services.s3photoalbum;
@@ -58,6 +58,14 @@ in {
           User = cfg.user;
           Group = cfg.group;
           WorkingDirectory = cfg.dataDir;
+          ExecStart = "${pkgs.s3photoalbum}/bin/server";
+          Restart = "on-failure";
+        }
+        (mkIf (cfg.dataDir == "/var/lib/s3photoalbum") {
+          StateDirectory = "s3photoalbum";
+        })
+      ];
+    };
           ExecStart = "${pkgs.s3photoalbum}/bin/s3photoalbum";
           Restart = "on-failure";
         }
