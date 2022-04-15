@@ -3,6 +3,16 @@
   inputs.flake-utils.url = "github:numtide/flake-utils";
 
   outputs = { self, nixpkgs, flake-utils }:
+
+    {
+      nixosModule = ({ pkgs, ... }: {
+        imports = [ ./default.nix ];
+        nixpkgs.overlays =
+          [ (_self: _super: { s3photoalbum = self.packages.${pkgs.system}; }) ];
+      });
+
+    } //
+
     flake-utils.lib.eachDefaultSystem (system:
       with nixpkgs.legacyPackages.${system}; rec {
 
