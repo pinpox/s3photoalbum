@@ -14,7 +14,7 @@
             version = "0.1";
 
             src = ./.;
-            vendorSha256 = "sha256-1cgqoLbZzKBVUsaW0ssYBt0gqtuCYgMatREan1fJEbY=";
+            vendorSha256 = "sha256-HcPUWpPpiwBf3wUHu1Mh6Jk3FfMtsoLhXXg0RoABUno=";
             subPackages = [ "cmd/server" "cmd/thumbnailer" ];
             installPhase = ''
               mkdir -p $out
