@@ -97,11 +97,11 @@ func main() {
 	DB = db
 
 	// TODO users for testing
-	pinPass, err:= hashAndSalt("pin")
+	pinPass, err := hashAndSalt("pin")
 	if err != nil {
 		log.Fatalln(err)
 	}
-	poxPass, err:= hashAndSalt("pox")
+	poxPass, err := hashAndSalt("pox")
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -136,7 +136,7 @@ func main() {
 	r.Static("/static", "./static")
 
 	r.Use(verifyToken) //TODO fix
-	// r.GET("/me", getUserInfo)
+	r.GET("/me", getUserInfo)
 	r.GET("/", indexHandler)
 	r.GET("/albums/:album", albumHandler)
 	r.GET("/albums/:album/:image", imageHandler)
