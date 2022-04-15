@@ -8,6 +8,14 @@ in {
 
     enable = mkEnableOption "s3photoalbum";
 
+    acme = mkOption {
+      type = types.bool;
+      default = false;
+      description = ''
+        Configure nginx to use ACME
+      '';
+    };
+
     dataDir = mkOption {
       type = types.str;
       default = "/var/lib/s3photoalbum";
@@ -21,6 +29,22 @@ in {
       default = "/var/src/secrets/s3photoalbum/envfile";
       description = ''
         The location of the envfile containing secrets
+      '';
+    };
+
+    hostname = mkOption {
+      type = types.str;
+      default = "gallery.your-domain.com";
+      description = ''
+        hostname to use for nginx
+      '';
+    };
+
+    nginx = mkOption {
+      type = types.bool;
+      default = false;
+      description = ''
+        configure nginx s3photoalbum virtualHost 
       '';
     };
 
@@ -47,6 +71,19 @@ in {
   };
 
   config = mkIf cfg.enable {
+
+    services.nginx = mkIf cfg.nginx {
+      enable = true;
+      recommendedProxySettings = true;
+      recommendedTlsSettings = mkIf cfg.acme true;
+      virtualHosts = {
+        "${cfg.hostname}" = {
+          forceSSL = mkIf cfg.acme true;
+          enableACME = mkIf cfg.acme true;
+          locations."/" = { proxyPass = "http://127.0.0.1:7788"; };
+        };
+      };
+    };
 
     systemd.services.s3photoalbum = {
       description = "A self-hosted photo album";
@@ -96,7 +133,10 @@ in {
 
     users.groups = mkIf (cfg.group == "s3photoalbum") { s3photoalbum = { }; };
 
-    networking.firewall = mkIf cfg.openFirewall { allowedTCPPorts = [ 7788 ]; };
+    networking.firewall = mkIf cfg.openFirewall {
+      allowedTCPPorts = optional (cfg.nginx != true) 7788
+        ++ optional (cfg.nginx) 80 ++ optional (cfg.nginx) 443;
+    };
 
   };
   meta = { maintainers = with lib.maintainers; [ mayniklas ]; };
