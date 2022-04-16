@@ -5,18 +5,33 @@ import (
     "errors"
     "fmt"
     "github.com/golang-jwt/jwt"
+
+	"github.com/gin-gonic/gin"
+	"net/http"
     "time"
 )
 
 
 
-// TODO REPLACE
-// openssl rand -base64 172
-var jwtKey = []byte("FDr1VjVQiSiybYJrQZNt8Vfd7bFEsKP6vNX1brOSiWl0mAIVCxJiR4/T3zpAlBKc2/9Lw2ac4IwMElGZkssfj3dqwa7CQC7IIB+nVxiM1c9yfowAZw4WQJ86RCUTXaXvRX8JoNYlgXcRrK3BK0E/fKCOY1+izInW3abf0jEeN40HJLkXG6MZnYdhzLnPgLL/TnIFTTAbbItxqWBtkz6FkZTG+dkDSXN7xNUxlg==")
 
+func verifyToken(c *gin.Context) {
 
+	token, err := c.Cookie("token")
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{})
+		return
+	}
 
+	id, username, err := validateToken(token)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{})
+		return
+	}
 
+	c.Set("id", id)
+	c.Set("username", username)
+	c.Next()
+}
 
 
 func hashAndSalt(pwd string) (string, error) {

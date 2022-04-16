@@ -24,66 +24,43 @@ import (
 var minioClient *minio.Client
 var mediaBucket string
 var thumbnailBucket string
-var templatesDir string
+var resourcesDir string
+var useSSL bool
 
 var DB *gorm.DB
 
-type User struct {
-	gorm.Model
-	Username string `json:"username"`
-	Password string `json:"password"`
-	Age      uint   `json:"age"`
-}
-
-func verifyToken(c *gin.Context) {
-
-	token, err := c.Cookie("token")
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{})
-		return
-	}
-
-	id, username, err := validateToken(token)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{})
-		return
-	}
-
-	c.Set("id", id)
-	c.Set("username", username)
-	c.Next()
-}
-
-func getSession(c *gin.Context) (uint, string, bool) {
-
-	fmt.Println("getting session")
-	id, ok := c.Get("id")
-	if !ok {
-		return 0, "", false
-	}
-	username, ok := c.Get("username")
-	if !ok {
-		return 0, "", false
-	}
-	return id.(uint), username.(string), true
-}
+// openssl rand -base64 172
+var jwtKey []byte
 
 func main() {
 
+	var err error
+
+	// S3 Connection parameters
 	endpoint := os.Getenv("S3_ENDPOINT")
 	accessKeyID := os.Getenv("S3_ACCESSKEY")
 	secretAccessKey := os.Getenv("S3_SECRETKEY")
 	mediaBucket = os.Getenv("S3_BUCKET_MEDIA")
 	thumbnailBucket = os.Getenv("S3_BUCKET_THUMBNAILS")
-	useSSL := true
 
-	templatesDir = os.Getenv("TEMPLATES_DIR")
-	if len(templatesDir) == 0 {
-		templatesDir = "./templates"
+	useSSL, err = strconv.ParseBool(os.Getenv("S3_SSL"))
+	if err != nil{
+		log.Fatal("S3_SSL not set")
+	}
+
+	// JWT key
+	if len(os.Getenv("JWT_KEY")) == 0 {
+		log.Fatal("No JWT key set")
+	}
+	jwtKey = []byte(os.Getenv("JWT_KEY"))
+
+
+	resourcesDir = os.Getenv("RESOURCES_DIR")
+	if len(resourcesDir) == 0 {
+		resourcesDir = "."
 	}
 
 	var db *gorm.DB
-	var err error
 
 	// Setup database
 	// TODO use an actual file for persistance
@@ -117,26 +94,28 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	// Setup routes
+	// Setup router
 	r := gin.Default()
 
+	// Load templates
 	// r.Delims("{[{", "}]}")
 	r.SetFuncMap(template.FuncMap{
 		"incolumn": func(colNum, index int) bool { return index%4 == colNum },
 	})
 
-	r.LoadHTMLGlob(path.Join(templatesDir + "/*.html"))
+	r.LoadHTMLGlob(path.Join(resourcesDir, "templates", "*.html"))
 
+	// Set up routes
 	r.POST("/login", login)
 
 	r.GET("/login", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "login.html", nil)
 	})
 
-	r.Static("/static", "./static")
+	r.Static("/static", path.Join(resourcesDir, "static"))
 
-	r.Use(verifyToken) //TODO fix
-	r.GET("/me", getUserInfo)
+	r.Use(verifyToken)
+	r.GET("/me", getUserInfo) // TODO remove after testing
 	r.GET("/", indexHandler)
 	r.GET("/albums/:album", albumHandler)
 	r.GET("/albums/:album/:image", imageHandler)
@@ -145,7 +124,6 @@ func main() {
 	if err := r.Run("localhost:7788"); err != nil {
 		panic(err)
 	}
-
 }
 
 func albumHandler(c *gin.Context) {
@@ -173,6 +151,8 @@ func imageHandler(c *gin.Context) {
 
 	// Set request parameters for content-disposition.
 	reqParams := make(url.Values)
+
+	// TODO for download
 	// reqParams.Set("response-content-disposition", "attachment; filename=\""+ps.ByName("image")+"\"")
 
 	var presignedURL *url.URL
