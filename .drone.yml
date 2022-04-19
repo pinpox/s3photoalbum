@@ -1,0 +1,73 @@
+---
+kind: pipeline
+type: exec
+name: build amd64
+
+platform:
+  os: linux
+  arch: amd64
+
+clone:
+  depth: 1
+
+steps:
+
+- name: show flake info
+  commands:
+  - nix --experimental-features "nix-command flakes" flake show
+  - nix --experimental-features "nix-command flakes" flake metadata
+
+# - name: run flake checks
+#   commands:
+#   - nix --experimental-features "nix-command flakes" flake check --show-trace
+
+- name: nix build
+  commands:
+  - nix build
+  - nix path-info --closure-size -h $(readlink -f result)
+
+# - name: upload to binary cache
+#   commands:
+#   - nix run 'github:lounge-rocks/the-lounge'#s3uploader $(readlink result)
+#   environment:
+#     AWS_ACCESS_KEY_ID:
+#       from_secret: aws_key
+#     AWS_SECRET_ACCESS_KEY:
+#       from_secret: aws_secret
+
+---
+kind: pipeline
+type: exec
+name: build arm64
+
+platform:
+  os: linux
+  arch: arm64
+
+clone:
+  depth: 1
+
+steps:
+
+- name: show flake info
+  commands:
+  - nix --experimental-features "nix-command flakes" flake show
+  - nix --experimental-features "nix-command flakes" flake metadata
+
+# - name: run flake checks
+#   commands:
+#   - nix --experimental-features "nix-command flakes" flake check --show-trace
+
+- name: nix build
+  commands:
+  - nix build
+  - nix path-info --closure-size -h $(readlink -f result)
+
+# - name: upload to binary cache
+#   commands:
+#   - nix run 'github:lounge-rocks/the-lounge'#s3uploader $(readlink result)
+#   environment:
+#     AWS_ACCESS_KEY_ID:
+#       from_secret: aws_key
+#     AWS_SECRET_ACCESS_KEY:
+#       from_secret: aws_secret
