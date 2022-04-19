@@ -22,6 +22,13 @@ export S3_ACCESSKEY="XXXXXXXXXXXXXXXX"
 export S3_SECRETKEY="YYYYYYYYYYYYYYYYYYYYYYYYYY"
 export S3_BUCKET_MEDIA="photos-bucket"
 export S3_BUCKET_THUMBNAILS="thumnails-bucket"
+export S3_SSL=true
+
+# openssl rand -base64 172
+export JWT_KEY="XXXXXXX"
+
+export INITIAL_USER=admin
+export INITIAL_PASS=admin
 ```
 
 ## Run
@@ -30,4 +37,3 @@ Start the thumbnailer and the server separately with the above variables set
 
 
 
-// openssl rand -base64 172

@@ -27,6 +27,9 @@ var thumbnailBucket string
 var resourcesDir string
 var useSSL bool
 
+var initialPass string
+var initialUser string
+
 var DB *gorm.DB
 
 var jwtKey []byte
@@ -41,6 +44,9 @@ func main() {
 	secretAccessKey := os.Getenv("S3_SECRETKEY")
 	mediaBucket = os.Getenv("S3_BUCKET_MEDIA")
 	thumbnailBucket = os.Getenv("S3_BUCKET_THUMBNAILS")
+
+	initialUser = os.Getenv("INITIAL_USER")
+	initialPass = os.Getenv("INITIAL_PASS")
 
 	useSSL, err = strconv.ParseBool(os.Getenv("S3_SSL"))
 	if err != nil {
@@ -72,18 +78,13 @@ func main() {
 	}
 	DB = db
 
-	// TODO users for testing
-	pinPass, err := hashAndSalt("pin")
-	if err != nil {
-		log.Fatalln(err)
-	}
-	poxPass, err := hashAndSalt("pox")
+	// TODO improve intial user creation, check for existing
+	initialPassHash, err := hashAndSalt(initialPass)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	_, _ = insertUser("pin", pinPass, true, 30)
-	_, _ = insertUser("pox", poxPass, false, 25)
+	_, _ = insertUser(initialUser,initialPassHash, true, 30)
 
 	// Initialize minio client object.
 	minioClient, err = minio.New(endpoint, &minio.Options{
