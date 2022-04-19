@@ -29,7 +29,6 @@ var useSSL bool
 
 var DB *gorm.DB
 
-// openssl rand -base64 172
 var jwtKey []byte
 
 func main() {
@@ -44,7 +43,7 @@ func main() {
 	thumbnailBucket = os.Getenv("S3_BUCKET_THUMBNAILS")
 
 	useSSL, err = strconv.ParseBool(os.Getenv("S3_SSL"))
-	if err != nil{
+	if err != nil {
 		log.Fatal("S3_SSL not set")
 	}
 
@@ -53,7 +52,6 @@ func main() {
 		log.Fatal("No JWT key set")
 	}
 	jwtKey = []byte(os.Getenv("JWT_KEY"))
-
 
 	resourcesDir = os.Getenv("RESOURCES_DIR")
 	if len(resourcesDir) == 0 {
@@ -65,6 +63,7 @@ func main() {
 	// Setup database
 	// TODO use an actual file for persistance
 	db, err = gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	// db, err = gorm.Open(sqlite.Open("data.db"), &gorm.Config{})
 	if err != nil {
 		panic(err)
 	}
@@ -82,8 +81,9 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	_, _ = insertUser("pin", pinPass, 30)
-	_, _ = insertUser("pox", poxPass, 25)
+
+	_, _ = insertUser("pin", pinPass, true, 30)
+	_, _ = insertUser("pox", poxPass, false, 25)
 
 	// Initialize minio client object.
 	minioClient, err = minio.New(endpoint, &minio.Options{
@@ -106,6 +106,8 @@ func main() {
 	r.LoadHTMLGlob(path.Join(resourcesDir, "templates", "*.html"))
 
 	// Set up routes
+
+	// Routes accessible to anyone
 	r.POST("/login", login)
 
 	r.GET("/login", func(c *gin.Context) {
@@ -114,16 +116,75 @@ func main() {
 
 	r.Static("/static", path.Join(resourcesDir, "static"))
 
+	// Routes accessible to logged in users
 	r.Use(verifyToken)
-	r.GET("/me", getUserInfo) // TODO remove after testing
 	r.GET("/", indexHandler)
 	r.GET("/albums/:album", albumHandler)
 	r.GET("/albums/:album/:image", imageHandler)
+
+	// Routes accessible to admins only
+	r.Use(verifyAdmin)
+	r.GET("/me", getUserInfo) // TODO remove after testing
+	r.GET("/users", getUsers)
+	r.POST("/users", createUser)
+	r.GET("/users/:user/delete", deleteUser)
 
 	fmt.Println("starting gin")
 	if err := r.Run("localhost:7788"); err != nil {
 		panic(err)
 	}
+}
+
+func deleteUser(c *gin.Context) {
+	formUser := c.Param("user")
+
+	result := DB.Delete(&User{}, formUser)
+	if result.Error != nil {
+			fmt.Println(result.Error)
+	}
+
+	c.Redirect(http.StatusSeeOther, "/users")
+}
+
+func createUser(c *gin.Context) {
+
+	formUser := c.PostForm("username")
+	formPass := c.PostForm("password")
+	formIsAdmin := c.PostForm("isadmin")
+	formAge := c.PostForm("age")
+
+	passwordHash, err := hashAndSalt(formPass)
+	if err != nil {
+		fmt.Println("failed to hash pass", err)
+		getUsers(c)
+	}
+
+	userAge, err := strconv.ParseUint(formAge, 10, 64)
+	if err != nil {
+		fmt.Println("failed to convert age", err)
+		getUsers(c)
+	}
+
+	_, err = insertUser(formUser, passwordHash, formIsAdmin == "on", uint(userAge))
+	if err != nil {
+		fmt.Println("failed to insert user", err)
+		getUsers(c)
+	}
+
+	c.Redirect(http.StatusSeeOther, "/users")
+
+}
+
+func getUsers(c *gin.Context) {
+
+	var users []User
+
+	result := DB.Find(&users)
+	if result.Error != nil {
+		panic(result.Error)
+	}
+
+	c.HTML(http.StatusOK, "users.html", users)
 }
 
 func albumHandler(c *gin.Context) {

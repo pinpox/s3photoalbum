@@ -28,3 +28,6 @@ export S3_BUCKET_THUMBNAILS="thumnails-bucket"
 
 Start the thumbnailer and the server separately with the above variables set
 
+
+
+// openssl rand -base64 172

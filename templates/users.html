@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>Users</title>
+		<link rel="stylesheet" href="/static/style.css" />
+		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flexboxgrid/6.3.1/flexboxgrid.min.css" type="text/css" >
+	</head>
+		<body>
+
+			<div class="container">
+
+				<div class="row">
+					<div class="col-lg-12 center">
+						<table>
+							<tr>
+								<th>User</th>
+								<th>Age</th>
+								<th>Admin</th>
+								<th>delete</th>
+							</tr>
+							{{range .}}
+							<tr>
+								<td>{{.Username}}</td>
+								<td>{{.Age}}</td>
+								<td>{{.IsAdmin}}</td>
+								<td><a href="/users/{{.ID}}/delete">DELETE</a></td>
+							</tr>
+							{{end}}
+						</table>
+					</div>
+				</div>
+
+				<form action="/users" method="post">
+					<div class="row">
+						<div class="col-lg-3">
+							<input type="text" placeholder="Username" name="username" required>
+						</div>
+
+						<div class="col-lg-3">
+							<input type="password" placeholder="Password" name="password" required>
+						</div>
+
+						<div class="col-lg-1">
+							<input type="number" placeholder="Age" name="age" required>
+						</div>
+
+						<div class="col-lg-1">
+							<input type="checkbox"  name="isadmin">
+						</div>
+
+						<div class="col-lg-2">
+							<button type="submit">Create</button>
+						</div>
+					</div>
+
+				</form>
+			</div>
+		</body>
+</html>
