@@ -97,6 +97,7 @@ in {
           WorkingDirectory = cfg.dataDir;
           ExecStart = "${pkgs.s3photoalbum}/bin/server";
           Restart = "on-failure";
+          Environment = [ "RESOURCES_DIR='${pkgs.s3photoalbum}/share'" ];
         }
         (mkIf (cfg.dataDir == "/var/lib/s3photoalbum") {
           StateDirectory = "s3photoalbum";

@@ -27,9 +27,10 @@
             vendorSha256 = "sha256-HcPUWpPpiwBf3wUHu1Mh6Jk3FfMtsoLhXXg0RoABUno=";
             subPackages = [ "cmd/server" "cmd/thumbnailer" ];
             installPhase = ''
-              mkdir -p $out
+              mkdir -p $out/share
               cp -r /build/go/bin $out
-              cp -r ./templates $out/share
+              cp -r ./templates $out/share/
+              cp -r ./static $out/share/
               '';
 
 
