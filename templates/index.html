@@ -1,17 +1,12 @@
-<!DOCTYPE html>
-<html>
-		<head>
-				<meta charset="UTF-8">
-				<title>Albums</title>
-				<link rel="stylesheet" href="/static/style.css" />
-		</head>
-		<body>
-				<div class="container">
-						<h2>Albums</h2>
-						{{range $index, $album := .Albums}}
-						<a href="/albums/{{$album}}">{{$album}}</a>
-						{{else}} <strong>No Albums</strong>
-						{{end}}
-				</div>
-		</body>
-</html>
+{{define "title"}}Albums{{end}}
+{{define "content"}}
+<h2>Albums</h2>
+{{range $index, $album := .Data.Albums}}
+<a href="/albums/{{$album}}">{{$album}}</a>
+{{else}} <strong>No Albums</strong>
+{{end}}
+{{end}}
+
+{{template "layout.html" .}}
+
+

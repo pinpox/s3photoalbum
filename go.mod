@@ -4,6 +4,7 @@ go 1.17
 
 require (
 	github.com/disintegration/imaging v1.6.2
+	github.com/gin-contrib/multitemplate v0.0.0-20220323084503-710510e67c20
 	github.com/gin-gonic/gin v1.7.7
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/minio/minio-go/v7 v7.0.23

@@ -1,0 +1,15 @@
+<nav class="menu">
+		<ul>
+
+				{{if isLoggedIn .Context }}LOGGED IN{{end}}
+				{{getUsername .Context}}
+				{{if isAdmin .Context }}
+
+
+				<li><a href="/users">Users</a></li>
+
+				{{end}}
+				<li><a href="/">Index</a></li>
+
+		</ul>
+</nav>

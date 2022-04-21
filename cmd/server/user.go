@@ -110,5 +110,10 @@ func getUsers(c *gin.Context) {
 		panic(result.Error)
 	}
 
-	c.HTML(http.StatusOK, "users.html", users)
+	td := templateData{
+		Context: c,
+		Data:    users,
+	}
+
+	c.HTML(http.StatusOK, "users.html", td)
 }

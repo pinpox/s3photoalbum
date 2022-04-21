@@ -19,7 +19,7 @@ to the thumbnails bucket and only read access is needed on the media bucket.
 ```
 export S3_ENDPOINT="s3.myhost.com"
 export S3_ACCESSKEY="XXXXXXXXXXXXXXXX"
-export S3_SECRETKEY="YYYYYYYYYYYYYYYYYYYYYYYYYY"
+export S3_SECRETKEY="YYYYYYYYYYYYYYYYYYYYYYY"
 export S3_BUCKET_MEDIA="photos-bucket"
 export S3_BUCKET_THUMBNAILS="thumnails-bucket"
 export S3_SSL=true
@@ -36,4 +36,9 @@ export INITIAL_PASS=admin
 Start the thumbnailer and the server separately with the above variables set
 
 
-
+## s3fs mount bucket
+```
+export AWS_ACCESS_KEY_ID="XXXXXXXXXXXXXXXXXXXX"
+export AWS_SECRET_ACCESS_KEY="YYYYYYYYYYYYYYYYYYY"  
+s3fs bucket-name ~/s3mount -o 'use_path_request_style,url=https://s3.my.host'
+```

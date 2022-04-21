@@ -25,13 +25,13 @@ func verifyToken(c *gin.Context) {
 
 	token, err := c.Cookie("token")
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{})
+		c.Redirect(http.StatusSeeOther, "/login")
 		return
 	}
 
 	claims, err := validateToken(token)
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{})
+		c.Redirect(http.StatusSeeOther, "/login")
 		return
 	}
 

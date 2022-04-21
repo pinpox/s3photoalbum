@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+		<head>
+				<meta charset="UTF-8">
+				<title>{{template "title" .}}</title>
+				<link rel="stylesheet" href="/static/style.css" />
+				<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flexboxgrid/6.3.1/flexboxgrid.min.css" type="text/css" >
+				<link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+				<link rel="icon" type="image/png" href="/static/favicon.png">
+				{{block "head-extra" .}}{{end}}
+		</head>
+				<body>
+						{{template "navbar.html" .}}
+
+						<div class="container">
+								{{block "content" . }}{{end}}
+						</div>
+
+						{{template "footer.html" .}}
+
+				</body>
+</html>

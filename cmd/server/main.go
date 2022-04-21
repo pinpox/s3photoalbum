@@ -1,17 +1,18 @@
 package main
 
 import (
+	"path/filepath"
+
 	"context"
 	"fmt"
+	"github.com/gin-contrib/multitemplate"
 	"html/template"
 	"log"
 	"net/http"
-	"net/url"
 	"os"
 	"path"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
@@ -33,6 +34,38 @@ var initialUser string
 var DB *gorm.DB
 
 var jwtKey []byte
+
+func loadTemplates(templatesDir string) multitemplate.Renderer {
+	r := multitemplate.NewRenderer()
+
+	funcmap := template.FuncMap{
+		"incolumn":    func(colNum, index int) bool { return index%4 == colNum },
+		"isLoggedIn":  func(c *gin.Context) bool { return c.GetString("username") != "" },
+		"getUsername": func(c *gin.Context) string { return c.GetString("username") },
+		"isAdmin":     func(c *gin.Context) bool { return c.GetBool("isadmin") },
+	}
+
+	// Read all partials, they will be appended to all templates
+	partials, err := filepath.Glob(path.Join(templatesDir,"partials", "*.html"))
+	if err != nil {
+		panic(err.Error())
+	}
+
+	// Read all templates
+	templates, err := filepath.Glob(path.Join(templatesDir , "/*.html"))
+	if err != nil {
+		panic(err.Error())
+	}
+
+	// Add templates, naming them by their basename
+	for _, template := range templates {
+		templList := append([]string{}, template)
+		templList = append(templList, partials...)
+		r.AddFromFilesFuncs(filepath.Base(template), funcmap, templList...)
+	}
+
+	return r
+}
 
 func main() {
 
@@ -84,7 +117,7 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	_, _ = insertUser(initialUser,initialPassHash, true, 30)
+	_, _ = insertUser(initialUser, initialPassHash, true, 30)
 
 	// Initialize minio client object.
 	minioClient, err = minio.New(endpoint, &minio.Options{
@@ -98,13 +131,9 @@ func main() {
 	// Setup router
 	r := gin.Default()
 
-	// Load templates
+	// Load templates with custom renderer
+	r.HTMLRender = loadTemplates(path.Join(resourcesDir, "templates"))
 	// r.Delims("{[{", "}]}")
-	r.SetFuncMap(template.FuncMap{
-		"incolumn": func(colNum, index int) bool { return index%4 == colNum },
-	})
-
-	r.LoadHTMLGlob(path.Join(resourcesDir, "templates", "*.html"))
 
 	// Set up routes
 
@@ -136,86 +165,14 @@ func main() {
 	}
 }
 
-func albumHandler(c *gin.Context) {
-
-	ad := struct {
-		Title  string
-		Images []string
-	}{
-		Title:  c.Param("album"),
-		Images: listObjectsByPrefix(c.Param("album") + "/"),
-	}
-
-	c.HTML(http.StatusOK, "album.html", ad)
+type templateData struct {
+	Context *gin.Context
+	Data    interface{}
 }
 
-func imageHandler(c *gin.Context) {
-
-	res := c.DefaultQuery("thumbnail", "false")
-	thumbnail, err := strconv.ParseBool(res)
-	if err != nil {
-		thumbnail = false
-	}
-
-	imgPath := c.Param("album") + "/" + c.Param("image")
-
-	// Set request parameters for content-disposition.
-	reqParams := make(url.Values)
-
-	// TODO for download
-	// reqParams.Set("response-content-disposition", "attachment; filename=\""+ps.ByName("image")+"\"")
-
-	var presignedURL *url.URL
-
-	if thumbnail {
-
-		thumbPath := imgPath + ".jpg"
-
-		objInfo, err := minioClient.StatObject(context.Background(), thumbnailBucket, thumbPath, minio.StatObjectOptions{})
-		if err != nil {
-
-			errResponse := minio.ToErrorResponse(err)
-			if errResponse.Code == "NoSuchKey" {
-				// No thumbnails exists yet, fallback to full resolution
-				fmt.Printf("No thumbnail found for '%v' falling back to full res\n", thumbPath)
-				presignedURL, err = minioClient.PresignedGetObject(context.Background(), mediaBucket, imgPath, time.Second*1*60*60, reqParams)
-				if err != nil {
-					fmt.Println(err)
-					return
-				}
-
-			} else {
-				// A different error occured (e.g. access denied, bucket non-existant)
-				log.Fatal(err)
-			}
-
-		} else {
-			fmt.Println("Thumbnail exists:", objInfo)
-
-			presignedURL, err = minioClient.PresignedGetObject(context.Background(), thumbnailBucket, thumbPath, time.Second*1*60*60, reqParams)
-			if err != nil {
-				fmt.Println(err)
-				return
-			}
-			fmt.Println("getting thumb")
-			fmt.Println(presignedURL)
-
-		}
-
-	} else {
-
-		// Generates a presigned url which expires in a hour.
-		presignedURL, err = minioClient.PresignedGetObject(context.Background(), mediaBucket, imgPath, time.Second*1*60*60, reqParams)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-	}
-	// fmt.Println("Successfully generated presigned URL", presignedURL)
-	c.Redirect(http.StatusSeeOther, presignedURL.String())
-}
 
 func listObjectsByPrefix(prefix string) []string {
+	fmt.Println("listing:", prefix)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -232,20 +189,25 @@ func listObjectsByPrefix(prefix string) []string {
 			fmt.Println(object.Err)
 			return ret
 		}
-		ret = append(ret, strings.TrimSuffix(object.Key, "/"))
+		ret = append(ret, strings.TrimPrefix(strings.TrimSuffix(object.Key, "/"), prefix))
 	}
+	fmt.Println(ret)
 	return ret
 }
 
 func indexHandler(c *gin.Context) {
 
-	tmpldata := struct {
-		Title  string
-		Albums []string
-	}{
-		Title:  "Albums",
-		Albums: listObjectsByPrefix("/"),
+	td := templateData{
+
+		Context: c,
+		Data: struct {
+			Title  string
+			Albums []string
+		}{
+			Title:  "Albums",
+			Albums: listObjectsByPrefix(c.GetString("username") + "/"),
+		},
 	}
 
-	c.HTML(http.StatusOK, "index.html", tmpldata)
+	c.HTML(http.StatusOK, "index.html", td)
 }
