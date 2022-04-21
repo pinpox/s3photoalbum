@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"errors"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"net/http"
@@ -16,6 +17,16 @@ type User struct {
 	Password string `gorm:"not null"`
 	IsAdmin  bool   `gorm:"not null;default:false"`
 	Age      uint
+}
+
+func (u *User) BeforeDelete(tx *gorm.DB) (err error) {
+	var count int64
+	DB.Model(&User{}).Count(&count)
+
+	if count == 1 {
+		return errors.New("Can't delete last user")
+	}
+	return
 }
 
 func insertUser(username string, password string, isadmin bool, age uint) (*User, error) {
@@ -64,7 +75,7 @@ func getSession(c *gin.Context) (uint, string, bool) {
 func deleteUser(c *gin.Context) {
 	formUser := c.Param("user")
 
-	result := DB.Delete(&User{}, formUser)
+	result := DB.Unscoped().Delete(&User{}, formUser)
 	if result.Error != nil {
 		fmt.Println(result.Error)
 	}
@@ -107,7 +118,7 @@ func getUsers(c *gin.Context) {
 
 	result := DB.Find(&users)
 	if result.Error != nil {
-		panic(result.Error)
+		log.Fatal(result.Error)
 	}
 
 	td := templateData{

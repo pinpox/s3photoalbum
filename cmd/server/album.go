@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/minio/minio-go/v7"
-	"log"
 	"net/http"
 	"net/url"
 	"path"

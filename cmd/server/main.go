@@ -6,8 +6,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/gin-contrib/multitemplate"
+	"go.uber.org/zap"
 	"html/template"
-	"log"
 	"net/http"
 	"os"
 	"path"
@@ -46,15 +46,15 @@ func loadTemplates(templatesDir string) multitemplate.Renderer {
 	}
 
 	// Read all partials, they will be appended to all templates
-	partials, err := filepath.Glob(path.Join(templatesDir,"partials", "*.html"))
+	partials, err := filepath.Glob(path.Join(templatesDir, "partials", "*.html"))
 	if err != nil {
-		panic(err.Error())
+		log.Fatal(err.Error())
 	}
 
 	// Read all templates
-	templates, err := filepath.Glob(path.Join(templatesDir , "/*.html"))
+	templates, err := filepath.Glob(path.Join(templatesDir, "/*.html"))
 	if err != nil {
-		panic(err.Error())
+		log.Fatal(err.Error())
 	}
 
 	// Add templates, naming them by their basename
@@ -67,7 +67,13 @@ func loadTemplates(templatesDir string) multitemplate.Renderer {
 	return r
 }
 
+var log *zap.SugaredLogger
+
 func main() {
+
+	logger, _ := zap.NewDevelopment()
+	defer logger.Sync() // flushes buffer, if any
+	log = logger.Sugar()
 
 	var err error
 
@@ -104,17 +110,17 @@ func main() {
 	// db, err = gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	db, err = gorm.Open(sqlite.Open("data.db"), &gorm.Config{})
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	if err := db.AutoMigrate(&User{}); err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	DB = db
 
 	// TODO improve intial user creation, check for existing
 	initialPassHash, err := hashAndSalt(initialPass)
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatal(err)
 	}
 
 	_, _ = insertUser(initialUser, initialPassHash, true, 30)
@@ -125,7 +131,7 @@ func main() {
 		Secure: useSSL,
 	})
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatal(err)
 	}
 
 	// Setup router
@@ -161,7 +167,7 @@ func main() {
 
 	fmt.Println("starting gin")
 	if err := r.Run("localhost:7788"); err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 }
 
@@ -169,7 +175,6 @@ type templateData struct {
 	Context *gin.Context
 	Data    interface{}
 }
-
 
 func listObjectsByPrefix(prefix string) []string {
 	fmt.Println("listing:", prefix)
