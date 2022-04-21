@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"errors"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -60,7 +59,6 @@ func findUserByID(id uint) (*User, error) {
 
 func getSession(c *gin.Context) (uint, string, bool) {
 
-	fmt.Println("getting session")
 	id, ok := c.Get("id")
 	if !ok {
 		return 0, "", false
@@ -77,7 +75,7 @@ func deleteUser(c *gin.Context) {
 
 	result := DB.Unscoped().Delete(&User{}, formUser)
 	if result.Error != nil {
-		fmt.Println(result.Error)
+		log.Error(result.Error)
 	}
 
 	c.Redirect(http.StatusSeeOther, "/users")
@@ -92,19 +90,19 @@ func createUser(c *gin.Context) {
 
 	passwordHash, err := hashAndSalt(formPass)
 	if err != nil {
-		fmt.Println("failed to hash pass", err)
+		log.Error("failed to hash pass", err)
 		getUsers(c)
 	}
 
 	userAge, err := strconv.ParseUint(formAge, 10, 64)
 	if err != nil {
-		fmt.Println("failed to convert age", err)
+		log.Error("failed to convert age", err)
 		getUsers(c)
 	}
 
 	_, err = insertUser(formUser, passwordHash, formIsAdmin == "on", uint(userAge))
 	if err != nil {
-		fmt.Println("failed to insert user", err)
+		log.Error("failed to insert user", err)
 		getUsers(c)
 	}
 

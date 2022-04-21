@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/minio/minio-go/v7"
 	"net/http"
@@ -58,10 +57,10 @@ func imageHandler(c *gin.Context) {
 			errResponse := minio.ToErrorResponse(err)
 			if errResponse.Code == "NoSuchKey" {
 				// No thumbnails exists yet, fallback to full resolution
-				fmt.Printf("No thumbnail found for '%v' falling back to full res\n", thumbPath)
+				log.Errorf("No thumbnail found for '%v' falling back to full res\n", thumbPath)
 				presignedURL, err = minioClient.PresignedGetObject(context.Background(), mediaBucket, imgPath, time.Second*1*60*60, reqParams)
 				if err != nil {
-					fmt.Println(err)
+					log.Error(err)
 					return
 				}
 
@@ -71,15 +70,14 @@ func imageHandler(c *gin.Context) {
 			}
 
 		} else {
-			fmt.Println("Thumbnail exists:", objInfo)
+			log.Info("Thumbnail exists:", objInfo)
 
 			presignedURL, err = minioClient.PresignedGetObject(context.Background(), thumbnailBucket, thumbPath, time.Second*1*60*60, reqParams)
 			if err != nil {
-				fmt.Println(err)
+				log.Error(err)
 				return
 			}
-			fmt.Println("getting thumb")
-			fmt.Println(presignedURL)
+			log.Info(presignedURL)
 
 		}
 
@@ -88,10 +86,10 @@ func imageHandler(c *gin.Context) {
 		// Generates a presigned url which expires in a hour.
 		presignedURL, err = minioClient.PresignedGetObject(context.Background(), mediaBucket, imgPath, time.Second*1*60*60, reqParams)
 		if err != nil {
-			fmt.Println(err)
+			log.Error(err)
 			return
 		}
 	}
-	// fmt.Println("Successfully generated presigned URL", presignedURL)
+	//log.Infof("Successfully generated presigned URL", presignedURL)
 	c.Redirect(http.StatusSeeOther, presignedURL.String())
 }

@@ -4,7 +4,6 @@ import (
 	"path/filepath"
 
 	"context"
-	"fmt"
 	"github.com/gin-contrib/multitemplate"
 	"go.uber.org/zap"
 	"html/template"
@@ -165,7 +164,7 @@ func main() {
 	r.POST("/users", createUser)
 	r.GET("/users/:user/delete", deleteUser)
 
-	fmt.Println("starting gin")
+	log.Info("starting gin")
 	if err := r.Run("localhost:7788"); err != nil {
 		log.Fatal(err)
 	}
@@ -177,7 +176,7 @@ type templateData struct {
 }
 
 func listObjectsByPrefix(prefix string) []string {
-	fmt.Println("listing:", prefix)
+	log.Info("listing:", prefix)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -191,12 +190,12 @@ func listObjectsByPrefix(prefix string) []string {
 	ret := []string{}
 	for object := range objectCh {
 		if object.Err != nil {
-			fmt.Println(object.Err)
+			log.Error(object.Err)
 			return ret
 		}
 		ret = append(ret, strings.TrimPrefix(strings.TrimSuffix(object.Key, "/"), prefix))
 	}
-	fmt.Println(ret)
+	// log.Info(ret)
 	return ret
 }
 
