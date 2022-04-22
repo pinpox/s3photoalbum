@@ -69,12 +69,26 @@ func loadTemplates(templatesDir string) multitemplate.Renderer {
 var log *zap.SugaredLogger
 
 func main() {
-
-	logger, _ := zap.NewDevelopment()
-	defer logger.Sync() // flushes buffer, if any
-	log = logger.Sugar()
-
 	var err error
+
+	// Initialize logger
+	level := zap.NewAtomicLevel()
+	level.SetLevel(zap.DebugLevel)
+
+	var cfg = zap.Config{
+		Level:    level,
+		Encoding: "console",
+	}
+
+	logger, err := cfg.Build()
+	if err != nil {
+		panic(err)
+	}
+	defer logger.Sync()
+
+	// logger, _ := zap.NewDevelopment()
+	// defer logger.Sync() // flushes buffer, if any
+	log = logger.Sugar()
 
 	// S3 Connection parameters
 	endpoint := os.Getenv("S3_ENDPOINT")

@@ -70,14 +70,14 @@ func imageHandler(c *gin.Context) {
 			}
 
 		} else {
-			log.Info("Thumbnail exists:", objInfo)
+			log.Debug("Thumbnail exists:", objInfo)
 
 			presignedURL, err = minioClient.PresignedGetObject(context.Background(), thumbnailBucket, thumbPath, time.Second*1*60*60, reqParams)
 			if err != nil {
 				log.Error(err)
 				return
 			}
-			log.Info(presignedURL)
+			log.Debug(presignedURL)
 
 		}
 
