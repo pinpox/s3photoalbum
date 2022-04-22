@@ -1,15 +1,11 @@
 <nav class="menu">
 		<ul>
-
-				{{if isLoggedIn .Context }}LOGGED IN{{end}}
-				{{getUsername .Context}}
-				{{if isAdmin .Context }}
-
-
-				<li><a href="/users">Users</a></li>
-
-				{{end}}
 				<li><a href="/">Index</a></li>
+				{{if isAdmin .Context }}
+				<li><a href="/users">Users</a></li>
+				{{end}}
+				<!-- {{if isLoggedIn .Context }}LOGGED IN{{end}} -->
+				<li style="float:right">{{getUsername .Context}}</li>
 
 		</ul>
 </nav>
