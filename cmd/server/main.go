@@ -136,7 +136,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	_, _ = insertUser(initialUser, initialPassHash, true, 30)
+	_, _ = insertUser(initialUser, initialPassHash, true)
 
 	// Initialize minio client object.
 	minioClient, err = minio.New(endpoint, &minio.Options{

@@ -10,14 +10,12 @@
 				<table>
 						<tr>
 								<th>User</th>
-								<th>Age</th>
 								<th>Admin</th>
 								<th>delete</th>
 						</tr>
 						{{range .Data}}
 						<tr>
 								<td>{{.Username}}</td>
-								<td>{{.Age}}</td>
 								<td>{{.IsAdmin}}</td>
 								<td><a href="/users/{{.ID}}/delete">DELETE</a></td>
 						</tr>
@@ -39,14 +37,10 @@
 				</div>
 
 				<div class="col-lg-1">
-						<input type="number" placeholder="Age" name="age" required>
-				</div>
-
-				<div class="col-lg-1">
 						<input type="checkbox"  name="isadmin">
 				</div>
 
-				<div class="col-lg-2">
+				<div class="col-lg-3">
 						<button type="submit">Create</button>
 				</div>
 		</div>

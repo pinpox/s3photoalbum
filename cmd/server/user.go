@@ -5,7 +5,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"net/http"
-	"strconv"
 
 	"gorm.io/gorm/clause"
 )
@@ -15,7 +14,6 @@ type User struct {
 	Username string `gorm:"unique;not null"`
 	Password string `gorm:"not null"`
 	IsAdmin  bool   `gorm:"not null;default:false"`
-	Age      uint
 }
 
 func (u *User) BeforeDelete(tx *gorm.DB) (err error) {
@@ -28,12 +26,11 @@ func (u *User) BeforeDelete(tx *gorm.DB) (err error) {
 	return
 }
 
-func insertUser(username string, password string, isadmin bool, age uint) (*User, error) {
+func insertUser(username string, password string, isadmin bool ) (*User, error) {
 	user := User{
 		Username: username,
 		Password: password,
 		IsAdmin:  isadmin,
-		Age:      age,
 	}
 	if res := DB.Clauses(clause.OnConflict{DoNothing: true}).Create(&user); res.Error != nil {
 		return nil, res.Error
@@ -86,7 +83,6 @@ func createUser(c *gin.Context) {
 	formUser := c.PostForm("username")
 	formPass := c.PostForm("password")
 	formIsAdmin := c.PostForm("isadmin")
-	formAge := c.PostForm("age")
 
 	passwordHash, err := hashAndSalt(formPass)
 	if err != nil {
@@ -94,13 +90,7 @@ func createUser(c *gin.Context) {
 		getUsers(c)
 	}
 
-	userAge, err := strconv.ParseUint(formAge, 10, 64)
-	if err != nil {
-		log.Error("failed to convert age", err)
-		getUsers(c)
-	}
-
-	_, err = insertUser(formUser, passwordHash, formIsAdmin == "on", uint(userAge))
+	_, err = insertUser(formUser, passwordHash, formIsAdmin == "on" )
 	if err != nil {
 		log.Error("failed to insert user", err)
 		getUsers(c)
