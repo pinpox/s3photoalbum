@@ -140,5 +140,5 @@ in {
     };
 
   };
-  meta = { maintainers = with lib.maintainers; [ mayniklas ]; };
+  meta = { maintainers = with lib.maintainers; [ mayniklas pinpox ]; };
 }
