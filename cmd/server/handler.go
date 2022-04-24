@@ -14,18 +14,21 @@ func login(c *gin.Context) {
 	user, err := findUserByUsername(formUser)
 	if err != nil {
 		// User not found
+		log.Warn("User not found", err)
 		c.HTML(http.StatusOK, "login.html", "Authentication failed")
 		return
 	}
 
 	// Comparing the password with the hash
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(formPass)); err != nil {
+		log.Warn("Invalid password", err)
 		c.HTML(http.StatusOK, "login.html", "Authentication failed")
 		return
 	}
 
 	token, err := generateToken(*user)
 	if err != nil {
+		log.Warn("token error", err)
 		c.HTML(http.StatusOK, "login.html", "Authentication failed")
 		return
 	}
@@ -35,6 +38,7 @@ func login(c *gin.Context) {
 	// TODO refersh the token before it expires
 	c.SetCookie("token", token, 3600, "/", "localhost", true, false)
 
+	log.Warn("User", formUser, "logged in")
 	c.Redirect(http.StatusSeeOther, "/")
 
 }
