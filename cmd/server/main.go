@@ -92,7 +92,7 @@ func main() {
 
 	logger, _ := zap.NewDevelopment()
 	defer logger.Sync() // flushes buffer, if any
-	log := logger.Sugar()
+	log = logger.Sugar()
 
 	log.Info("Logger initialized")
 
