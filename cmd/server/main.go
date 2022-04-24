@@ -72,23 +72,29 @@ func main() {
 	var err error
 
 	// Initialize logger
-	level := zap.NewAtomicLevel()
-	level.SetLevel(zap.DebugLevel)
+	// level := zap.NewAtomicLevel()
+	// // level.SetLevel(zap.DebugLevel)
 
-	var cfg = zap.Config{
-		Level:    level,
-		Encoding: "console",
-	}
+	// var cfg = zap.Config{
+	// 	Level:    level,
+	// 	Encoding: "console",
+	// }
 
-	logger, err := cfg.Build()
-	if err != nil {
-		panic(err)
-	}
-	defer logger.Sync()
+	// logger, err := cfg.Build()
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// defer logger.Sync()
 
-	// logger, _ := zap.NewDevelopment()
-	// defer logger.Sync() // flushes buffer, if any
-	log = logger.Sugar()
+	// // logger, _ := zap.NewDevelopment()
+	// // defer logger.Sync() // flushes buffer, if any
+	// log = logger.Sugar()
+
+	logger, _ := zap.NewDevelopment()
+	defer logger.Sync() // flushes buffer, if any
+	log := logger.Sugar()
+
+	log.Info("Logger initialized")
 
 	// S3 Connection parameters
 	endpoint := os.Getenv("S3_ENDPOINT")
