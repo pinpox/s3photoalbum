@@ -22,10 +22,14 @@ import (
 )
 
 var minioClient *minio.Client
+
+// Environment variables
 var mediaBucket string
 var thumbnailBucket string
 var resourcesDir string
 var useSSL bool
+var envHost string
+var envDevelopment bool
 
 var initialPass string
 var initialUser string
@@ -109,6 +113,15 @@ func main() {
 
 	initialUser = os.Getenv("INITIAL_USER")
 	initialPass = os.Getenv("INITIAL_PASS")
+
+	envHost = os.Getenv("HOST")
+
+	envDevelopment, err = strconv.ParseBool(os.Getenv("DEVELOPMENT"))
+	if err != nil {
+		// Silently default to false
+		// TODO actually do something with this var
+		envDevelopment = false
+	}
 
 	useSSL, err = strconv.ParseBool(os.Getenv("S3_SSL"))
 	if err != nil {
