@@ -34,6 +34,11 @@ steps:
 #       from_secret: aws_key
 #     AWS_SECRET_ACCESS_KEY:
 #       from_secret: aws_secret
+trigger:
+  branch:
+  - main
+  event:
+  - push
 
 ---
 kind: pipeline
@@ -71,3 +76,8 @@ steps:
 #       from_secret: aws_key
 #     AWS_SECRET_ACCESS_KEY:
 #       from_secret: aws_secret
+trigger:
+  branch:
+  - main
+  event:
+  - push
