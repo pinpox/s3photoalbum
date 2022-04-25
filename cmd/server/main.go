@@ -29,6 +29,8 @@ var thumbnailBucket string
 var resourcesDir string
 var useSSL bool
 var envHost string
+var envListenAddress string
+var envListenPort string
 var envDevelopment bool
 
 var initialPass string
@@ -115,11 +117,14 @@ func main() {
 	initialPass = os.Getenv("INITIAL_PASS")
 
 	envHost = os.Getenv("HOST")
+	envListenAddress = os.Getenv("LISTEN_ADDRESS")
+	envListenPort = os.Getenv("LISTEN_PORT")
 
 	envDevelopment, err = strconv.ParseBool(os.Getenv("DEVELOPMENT"))
 	if err != nil {
 		// Silently default to false
 		// TODO actually do something with this var
+		// gin.SetMode(gin.ReleaseMode) and zap.NewReleaes()
 		envDevelopment = false
 	}
 
@@ -202,7 +207,7 @@ func main() {
 	r.GET("/users/:user/delete", deleteUser)
 
 	log.Info("starting gin")
-	if err := r.Run("localhost:7788"); err != nil {
+	if err := r.Run(envListenAddress + ":" + envListenPort); err != nil {
 		log.Fatal(err)
 	}
 }
