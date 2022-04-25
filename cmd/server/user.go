@@ -75,6 +75,7 @@ func deleteUser(c *gin.Context) {
 		log.Error(result.Error)
 	}
 
+	log.Info("User deleted. Redirecting to /users")
 	c.Redirect(http.StatusSeeOther, "/users")
 }
 
@@ -96,6 +97,7 @@ func createUser(c *gin.Context) {
 		getUsers(c)
 	}
 
+	log.Info("User created. Redirecting to /users")
 	c.Redirect(http.StatusSeeOther, "/users")
 
 }

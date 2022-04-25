@@ -38,7 +38,7 @@ func login(c *gin.Context) {
 	// TODO refersh the token before it expires
 	c.SetCookie("token", token, 3600, "/", "localhost", true, false)
 
-	log.Warn("User", formUser, "logged in")
+	log.Infof("User %s logged in, redirecting to /\n", formUser)
 	c.Redirect(http.StatusSeeOther, "/")
 
 }
