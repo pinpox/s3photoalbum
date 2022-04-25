@@ -90,7 +90,11 @@ func main() {
 	// // defer logger.Sync() // flushes buffer, if any
 	// log = logger.Sugar()
 
-	logger, _ := zap.NewDevelopment()
+	// TODO set to release on release
+	logger, err := zap.NewDevelopment()
+	if err != nil {
+		panic(err)
+	}
 	defer logger.Sync() // flushes buffer, if any
 	log = logger.Sugar()
 
