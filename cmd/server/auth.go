@@ -26,6 +26,7 @@ func verifyToken(c *gin.Context) {
 	token, err := c.Cookie("token")
 	if err != nil {
 		log.Info("No token cookie, redirecting")
+		c.Abort()
 		c.Redirect(http.StatusSeeOther, "/login")
 		return
 	}
@@ -33,6 +34,7 @@ func verifyToken(c *gin.Context) {
 	claims, err := validateToken(token)
 	if err != nil {
 		log.Info("Failed to validate token, redirecting")
+		c.Abort()
 		c.Redirect(http.StatusSeeOther, "/login")
 		return
 	}
