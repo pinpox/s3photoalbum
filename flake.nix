@@ -5,11 +5,26 @@
   outputs = { self, nixpkgs, flake-utils }:
 
     {
-      nixosModule = ({ pkgs, ... }: {
-        imports = [ ./default.nix ];
-        nixpkgs.overlays =
-          [ (_self: _super: { s3photoalbum = self.packages.${pkgs.system}.s3photoalbum; }) ];
-      });
+      nixosModules = {
+
+        s3photoalbum = ({ pkgs, ... }: {
+          imports = [ ./modules/s3photoalbum.nix ];
+          nixpkgs.overlays = [
+            (_self: _super: {
+              s3photoalbum = self.packages.${pkgs.system}.s3photoalbum;
+            })
+          ];
+        });
+
+        s3photoalbum-thumbnailer = ({ pkgs, ... }: {
+          imports = [ ./modules/thumbnailer.nix ];
+          nixpkgs.overlays = [
+            (_self: _super: {
+              s3photoalbum = self.packages.${pkgs.system}.s3photoalbum;
+            })
+          ];
+        });
+      };
 
     } //
 
@@ -24,15 +39,15 @@
             version = "0.1";
 
             src = ./.;
-            vendorSha256 = "sha256-smYBXiRwvfaRmu5vIzzMW/SVf47hSEmSGvekqGWzYg4=";
+            vendorSha256 =
+              "sha256-smYBXiRwvfaRmu5vIzzMW/SVf47hSEmSGvekqGWzYg4=";
             subPackages = [ "cmd/server" "cmd/thumbnailer" ];
             installPhase = ''
               mkdir -p $out/share
               cp -r /build/go/bin $out
               cp -r ./templates $out/share/
               cp -r ./static $out/share/
-              '';
-
+            '';
 
             meta = with lib; {
               description = "TODO";
