@@ -1,72 +1,170 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"fmt"
-	"image"
-	"image/jpeg"
 	"log"
 	"os"
+	"os/exec"
+	"path"
+	"strconv"
+	"strings"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
-
-	"github.com/disintegration/imaging"
+	// "github.com/disintegration/imaging"
 )
 
 var minioClient *minio.Client
 var mediaBucket string
 var thumbnailBucket string
+var thumbnailSize string
 
-func makeThumbnail(key, contentType string) error {
+func getThumbJPEG(pathIn, pathOut string) error {
 
-	fmt.Println("Making thumbnail for:", key)
+	// Usage: ffmpegthumbnailer [options]
 
-	// Get source media and create an image from it
-	object, err := minioClient.GetObject(context.Background(), mediaBucket, key, minio.GetObjectOptions{})
-	if err != nil {
-		fmt.Println(err)
-		return nil
+	// Options:
+	//   -i<s>   : input file
+	//   -o<s>   : output file
+	//   -s<n>   : thumbnail size (use 0 for original size) (default: 128)
+	//   -t<n|s> : time to seek to (percentage or absolute time hh:mm:ss) (default: 10%)
+	//   -q<n>   : image quality (0 = bad, 10 = best) (default: 8)
+	//   -c      : override image format (jpeg, png or rgb) (default: determined by filename)
+	//   -a      : ignore aspect ratio and generate square thumbnail
+	//   -f      : create a movie strip overlay
+	//   -m      : prefer embedded image metadata over video content
+	//   -w      : workaround issues in old versions of ffmpeg
+	//   -v      : print version number
+	//   -h      : display this help
+
+	var err error
+
+	size, err := strconv.ParseUint(thumbnailSize, 10, 32)
+	if err != nil || size < 5 {
+		thumbnailSize = "256"
 	}
 
-	var img image.Image
-	img, err = imaging.Decode(object, imaging.AutoOrientation(true))
+	cmd := exec.Command(
+		"ffmpegthumbnailer",
+		"-i",
+		pathIn,
+		"-o",
+		pathOut,
+		"-s",
+		thumbnailSize,
+	)
+
+	var out, stderr bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &stderr
+
+	err = cmd.Run()
+	if err != nil {
+		fmt.Println(stderr.String())
+		return err
+	}
+
+	cmd.Wait()
+	return err
+}
+
+func makeThumbnail(key, contentType, etag string) (err error) {
+
+	fmt.Println("Making thumbnail for:", key, "etag:", etag)
+	tmpInFileName := etag + path.Ext(key)
+	tmpOutFileName := etag + path.Ext(key) + ".jpg"
+	newKey := key + ".jpg"
+
+	err = minioClient.FGetObject(
+		context.Background(),
+		mediaBucket,
+		key,
+		tmpInFileName,
+		minio.GetObjectOptions{},
+	)
+
+	defer func() {
+		if err = os.Remove(tmpInFileName); err != nil {
+			return
+		}
+	}()
 
 	if err != nil {
 		return err
 	}
 
-	// For fixed size thumbnails
-	// thumbnail := imaging.Thumbnail(img, 100, 100, imaging.CatmullRom)
-	// Leaving height at 0 keeps the original aspect ratio
-	thumbnail := imaging.Resize(img, 200, 0, imaging.CatmullRom)
-
-	var b bytes.Buffer
-	w := bufio.NewWriter(&b)
-
-	err = jpeg.Encode(w, thumbnail, &jpeg.Options{Quality: 90})
-
+	err = getThumbJPEG(tmpInFileName, tmpOutFileName)
 	if err != nil {
-		fmt.Println(err)
 		return err
 	}
 
-	reader := bytes.NewReader(b.Bytes())
+	// Make sure thumbnail file is deleted
+	defer func() {
+		if err = os.Remove(tmpOutFileName); err != nil {
+			return
+		}
+	}()
 
-	newFileName := key + ".jpg"
-	fmt.Println(newFileName)
-
-	uploadInfo, err := minioClient.PutObject(context.Background(), thumbnailBucket, newFileName, reader, int64(len(b.Bytes())), minio.PutObjectOptions{ContentType: contentType})
-	if err != nil {
-		fmt.Println(err)
-		return err
+	if info, err := minioClient.FPutObject(
+		context.Background(),
+		thumbnailBucket,
+		newKey,
+		tmpOutFileName,
+		minio.PutObjectOptions{ContentType: contentType},
+	); err == nil {
+		fmt.Println("Successfully uploaded bytes: ", info)
 	}
 
-	fmt.Println("Successfully uploaded bytes: ", uploadInfo)
+	return err
+}
 
-	return nil
+// difference returns the elements in `a` that aren't in `b`.
+func difference(a, b []string) []string {
+	mb := make(map[string]struct{}, len(b))
+	for _, x := range b {
+		mb[x] = struct{}{}
+	}
+	var diff []string
+	for _, x := range a {
+		if _, found := mb[x]; !found {
+			diff = append(diff, x)
+		}
+	}
+	return diff
+}
+
+func getMissingThumbnails() []string {
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	defer cancel()
+
+	thumbsCh := minioClient.ListObjects(ctx, thumbnailBucket, minio.ListObjectsOptions{Recursive: true})
+	mediaCh := minioClient.ListObjects(ctx, mediaBucket, minio.ListObjectsOptions{Recursive: true})
+
+	var mediaKeys []string
+	var thumbKeys []string
+
+	for object := range mediaCh {
+		if object.Err != nil {
+			fmt.Println(object.Err)
+			break
+		}
+		mediaKeys = append(mediaKeys, object.Key)
+	}
+
+	for object := range thumbsCh {
+		if object.Err != nil {
+			fmt.Println(object.Err)
+			break
+		}
+		thumbKeys = append(thumbKeys, strings.TrimSuffix(object.Key, ".jpg"))
+	}
+
+	return difference(mediaKeys, thumbKeys)
+
 }
 
 func main() {
@@ -76,6 +174,7 @@ func main() {
 	secretAccessKey := os.Getenv("S3_SECRETKEY")
 	mediaBucket = os.Getenv("S3_BUCKET_MEDIA")
 	thumbnailBucket = os.Getenv("S3_BUCKET_THUMBNAILS")
+	thumbnailSize = os.Getenv("THUMBNAIL_SIZE")
 
 	useSSL := true
 
@@ -89,6 +188,9 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
+
+	fmt.Println("Missing thumbnails")
+	fmt.Println(getMissingThumbnails())
 
 	// Listen for bucket notifications
 	for notificationInfo := range minioClient.ListenBucketNotification(context.Background(), mediaBucket, "", "", []string{
@@ -108,8 +210,9 @@ func main() {
 
 				errResponse := minio.ToErrorResponse(err)
 				if errResponse.Code == "NoSuchKey" {
+
 					// No thumbnails exists yet, generate and upload
-					if err = makeThumbnail(k.S3.Object.Key, k.S3.Object.ContentType); err != nil {
+					if err = makeThumbnail(k.S3.Object.Key, k.S3.Object.ContentType, k.S3.Object.ETag); err != nil {
 						// Something happened while generating or uploading the thumbnail
 						fmt.Println(err)
 						continue
@@ -121,7 +224,7 @@ func main() {
 				}
 
 			} else {
-				fmt.Println("Thumbnail exists:", objInfo)
+				fmt.Println("Thumbnail exists:", objInfo.Key)
 			}
 		}
 	}
