@@ -52,6 +52,10 @@ in {
           WorkingDirectory = cfg.dataDir;
           ExecStart = "${pkgs.s3photoalbum}/bin/thumbnailer";
           Restart = "on-failure";
+          Environment = [
+            "FFMPEGTHUMBNAILER_PATH='${pkgs.ffmpegthumbnailer}/bin/ffmpegthumbnailer'"
+            "THUMBNAIL_SIZE=300"
+          ];
         }
         (mkIf (cfg.dataDir == "/var/lib/s3photoalbum") {
           StateDirectory = "s3photoalbum";
@@ -67,7 +71,8 @@ in {
       };
     };
 
-    users.groups = mkIf (cfg.group == "s3photoalbum-thumb") { s3photoalbum-thumb = { }; };
+    users.groups =
+      mkIf (cfg.group == "s3photoalbum-thumb") { s3photoalbum-thumb = { }; };
 
   };
   meta = { maintainers = with lib.maintainers; [ mayniklas pinpox ]; };
