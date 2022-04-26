@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/gin-gonic/gin"
 	"github.com/minio/minio-go/v7"
+	"gorm.io/gorm"
 	"net/http"
 	"net/url"
 	"path"
@@ -11,7 +12,38 @@ import (
 	"time"
 )
 
+type Album struct {
+	gorm.Model
+	Name  string `gorm:"not null"`
+	Cover string `gorm:"not null"`
+}
+
+func getAlbumsByUsername(username string) ([]Album, error) {
+
+	var albums []Album
+	albumNames, err := listObjectsByPrefix(username + "/")
+
+	for _, v := range albumNames {
+		coverImg, err2 := listFirstObjectByPrefix(username + "/" + v + "/")
+		if err2 != nil {
+			return albums, err2
+		}
+		albums = append(albums, Album{
+			Name:  v,
+			Cover: "/albums/" + v + "/" + coverImg,
+		})
+	}
+	return albums, err
+}
+
 func albumHandler(c *gin.Context) {
+
+	images, err := listObjectsByPrefix(path.Join(c.GetString("username"), c.Param("album")) + "/")
+
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+	}
 
 	td := templateData{
 		Context: c,
@@ -21,7 +53,7 @@ func albumHandler(c *gin.Context) {
 			Context *gin.Context
 		}{
 			Album:   c.Param("album"),
-			Images:  listObjectsByPrefix(path.Join(c.GetString("username"), c.Param("album")) + "/"),
+			Images:  images,
 			Context: c,
 		},
 	}
@@ -29,67 +61,70 @@ func albumHandler(c *gin.Context) {
 	c.HTML(http.StatusOK, "album.html", td)
 }
 
-func imageHandler(c *gin.Context) {
+func checkBucketKeyExists(key, bucket string) bool {
+	_, err := minioClient.StatObject(context.Background(), bucket, key, minio.StatObjectOptions{})
+	return err == nil
+}
 
-	res := c.DefaultQuery("thumbnail", "false")
-	thumbnail, err := strconv.ParseBool(res)
-	if err != nil {
-		thumbnail = false
-	}
+func getFullResURI(imgPath string) string {
 
-	imgPath := path.Join(c.GetString("username"), c.Param("album"), c.Param("image"))
-
-	// Set request parameters for content-disposition.
 	reqParams := make(url.Values)
 
+	if !checkBucketKeyExists(imgPath, mediaBucket) {
+		log.Warnf("Image %s does not exist", imgPath)
+		return "/static/missing.png"
+	}
+
+	// Generates a presigned url which expires in a hour.
+	presignedURL, err := minioClient.PresignedGetObject(context.Background(), mediaBucket, imgPath, time.Second*1*60*60, reqParams)
+	if err != nil {
+		log.Warn(err)
+		return "/static/missing.png"
+	}
+
+	log.Debug("Found full-res URL: ", presignedURL.String())
+	return presignedURL.String()
+}
+
+func getThumbnailURI(imgPath string) string {
+	// Set request parameters for content-disposition.
+	reqParams := make(url.Values)
 	// TODO for download
 	// reqParams.Set("response-content-disposition", "attachment; filename=\""+ps.ByName("image")+"\"")
 
-	var presignedURL *url.URL
+	thumbPath := imgPath + ".jpg"
+
+	// Check if the real file exists
+	if !checkBucketKeyExists(imgPath, mediaBucket) {
+		return "/static/missing.png"
+	}
+
+	// Check if a thumbnail exists
+	if !checkBucketKeyExists(thumbPath, thumbnailBucket) {
+		return "/static/missing.png"
+	}
+
+	presignedURL, err := minioClient.PresignedGetObject(context.Background(), thumbnailBucket, thumbPath, time.Second*1*60*60, reqParams)
+	if err != nil {
+		log.Error(err)
+		return "/static/missing.png"
+	}
+
+	log.Debug("Found thumbnail URL: ", presignedURL.String())
+	return presignedURL.String()
+
+}
+
+func imageHandler(c *gin.Context) {
+
+	imgPath := path.Join(c.GetString("username"), c.Param("album"), c.Param("image"))
+
+	// Ignore error if any and default to false
+	thumbnail, _ := strconv.ParseBool(c.Query("thumbnail"))
 
 	if thumbnail {
-
-		thumbPath := imgPath + ".jpg"
-
-		objInfo, err := minioClient.StatObject(context.Background(), thumbnailBucket, thumbPath, minio.StatObjectOptions{})
-		if err != nil {
-
-			errResponse := minio.ToErrorResponse(err)
-			if errResponse.Code == "NoSuchKey" {
-				// No thumbnails exists yet, fallback to full resolution
-				log.Errorf("No thumbnail found for '%v' falling back to full res\n", thumbPath)
-				presignedURL, err = minioClient.PresignedGetObject(context.Background(), mediaBucket, imgPath, time.Second*1*60*60, reqParams)
-				if err != nil {
-					log.Error(err)
-					return
-				}
-
-			} else {
-				// A different error occured (e.g. access denied, bucket non-existant)
-				log.Fatal(err)
-			}
-
-		} else {
-			log.Debug("Thumbnail exists:", objInfo)
-
-			presignedURL, err = minioClient.PresignedGetObject(context.Background(), thumbnailBucket, thumbPath, time.Second*1*60*60, reqParams)
-			if err != nil {
-				log.Error(err)
-				return
-			}
-			log.Debug(presignedURL)
-
-		}
-
+		c.Redirect(http.StatusSeeOther, getThumbnailURI(imgPath))
 	} else {
-
-		// Generates a presigned url which expires in a hour.
-		presignedURL, err = minioClient.PresignedGetObject(context.Background(), mediaBucket, imgPath, time.Second*1*60*60, reqParams)
-		if err != nil {
-			log.Error(err)
-			return
-		}
+		c.Redirect(http.StatusSeeOther, getFullResURI(imgPath))
 	}
-	//log.Infof("Successfully generated presigned URL", presignedURL)
-	c.Redirect(http.StatusSeeOther, presignedURL.String())
 }
