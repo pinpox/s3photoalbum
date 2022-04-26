@@ -20,6 +20,7 @@ var minioClient *minio.Client
 var mediaBucket string
 var thumbnailBucket string
 var thumbnailSize string
+var ffmpegThumbnailerPath string
 
 func getThumbJPEG(pathIn, pathOut string) error {
 
@@ -47,7 +48,7 @@ func getThumbJPEG(pathIn, pathOut string) error {
 	}
 
 	cmd := exec.Command(
-		"ffmpegthumbnailer",
+		ffmpegThumbnailerPath,
 		"-i",
 		pathIn,
 		"-o",
@@ -175,6 +176,7 @@ func main() {
 	mediaBucket = os.Getenv("S3_BUCKET_MEDIA")
 	thumbnailBucket = os.Getenv("S3_BUCKET_THUMBNAILS")
 	thumbnailSize = os.Getenv("THUMBNAIL_SIZE")
+	ffmpegThumbnailerPath = os.Getenv("FFMPEGTHUMBNAILER_PATH")
 
 	useSSL := true
 
