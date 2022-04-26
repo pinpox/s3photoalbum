@@ -136,3 +136,49 @@ li a {
 li a:hover {
 		background-color: var(--color-accent);
 }
+
+/* Albums */ 
+
+
+/* When you mouse over the container, fade in the overlay title */
+.album-cover-container:hover .album-cover-overlay {
+		opacity: .9;
+}
+
+
+/* The overlay effect - lays on top of the container and over the image */
+.album-cover-overlay {
+		background: var(--color-dark);
+		bottom: 0;
+		color: var(--color-accent);
+		font-size: 2em;
+		opacity: .7;
+		padding-bottom: 20px;
+		padding-top: 20px;
+		position: absolute;
+		text-align: center;
+		transition: .3s ease;
+		width: 100%;
+}
+
+
+/* Container needed to position the overlay. Adjust the width as needed */
+.album-cover-container {
+		position: relative;
+		width: calc(100% - 6px); /* substract border */
+		border: 3px solid var(--color-dark);
+}
+
+.album-cover-container:hover {
+		border: 3px solid var(--color-accent);
+}
+
+/* Make the image to responsive */
+.album-cover-image {
+		display: block;
+		object-fit: cover;
+		width: 100%;
+		aspect-ratio: 1/1;
+}
+
+

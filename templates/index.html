@@ -1,10 +1,25 @@
 {{define "title"}}Albums{{end}}
 {{define "content"}}
 <h2>Albums</h2>
-{{range $index, $album := .Data.Albums}}
-<a href="/albums/{{$album}}">{{$album}}</a>
-{{else}} <strong>No Albums</strong>
-{{end}}
+
+
+<div class="row">
+		{{range $index, $album := .Data.Albums}}
+		<div class="col-lg-3">
+				<a href="/albums/{{$album.Name}}">
+						<div class="album-cover-container">
+								<img src="{{$album.Cover}}?thumbnail=true" alt="{{$album.Name}}" class="album-cover-image">
+								<div class="album-cover-overlay">{{$album.Name}}</div>
+						</div>
+				</a>
+		</div>
+		{{else}} <strong>No Albums</strong>
+		{{end}}
+
+</div>
+
+
+
 {{end}}
 
 {{template "layout.html" .}}
