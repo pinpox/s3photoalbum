@@ -128,6 +128,7 @@ func getThumbJPEG(pathIn, pathOut string) error {
 
 	stdOut, _, err := runCmd(cmdFfmpeg)
 	if err != nil {
+		fmt.Println("FFMpeg failed to extact thumbmail", stdOut)
 		return err
 	}
 
@@ -174,11 +175,14 @@ func makeThumbnail(key, etag string) (err error) {
 	}()
 
 	if err != nil {
+		fmt.Println("Failed to retrieve original media:", key)
+
 		return err
 	}
 
 	err = getThumbJPEG(tmpInFileName, tmpOutFileName)
 	if err != nil {
+		fmt.Println("Failed to extrat JPEG for:", key)
 		return err
 	}
 
@@ -280,7 +284,7 @@ func main() {
 	for _, v := range missingThumbs {
 		fmt.Printf("Creating thumbnail for: %s\n", v)
 		if err := makeThumbnailByKey(v); err != nil {
-			fmt.Println("Error makeing thumbnail for: ", v)
+			fmt.Println("Error making thumbnail for: ", v)
 		}
 	}
 
