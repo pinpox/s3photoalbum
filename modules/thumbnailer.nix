@@ -53,8 +53,9 @@ in {
           ExecStart = "${pkgs.s3photoalbum}/bin/thumbnailer";
           Restart = "on-failure";
           Environment = [
-            "FFMPEGTHUMBNAILER_PATH='${pkgs.ffmpegthumbnailer}/bin/ffmpegthumbnailer'"
             "THUMBNAIL_SIZE=300"
+            "FFMPEGTHUMBNAILER_PATH='${pkgs.ffmpegthumbnailer}/bin/ffmpegthumbnailer'"
+            "EXIFTOOL_PATH='${pkgs.exiftool}/bin/exiftool'"
           ];
         }
         (mkIf (cfg.dataDir == "/var/lib/s3photoalbum") {

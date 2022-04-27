@@ -21,6 +21,72 @@ var mediaBucket string
 var thumbnailBucket string
 var thumbnailSize string
 var ffmpegThumbnailerPath string
+var exiftoolPath string
+
+func runCmd(cmd *exec.Cmd) (stdout, stderr string, err error) {
+
+	var stdOut, stdErr bytes.Buffer
+	cmd.Stdout = &stdOut
+	cmd.Stderr = &stdErr
+
+	fmt.Println(cmd.String())
+	err = cmd.Run()
+	if err != nil {
+		fmt.Println(stdOut.String())
+		fmt.Println(stdErr.String())
+	}
+
+	return stdOut.String(), stdErr.String(), err
+
+}
+
+func setExifOrientation(pathIn, orientation string) error {
+
+	// shell ❯ exiftool -Orientation=6 -n test2.jpg
+	//     1 image files updated
+
+	cmdExiftool := exec.Command(
+		exiftoolPath,
+		"-Orientation="+orientation,
+		"-n",
+		"-overwrite_original",
+		pathIn)
+
+	_, _, err := runCmd(cmdExiftool)
+
+	return err
+
+}
+
+func getExifOrientation(pathIn string) (string, error) {
+
+	// shell ❯ exiftool -s -s -s -Orientation -n testdata/wrong_rotate.jpg
+	// 6
+
+	cmdExiftool := exec.Command(
+		exiftoolPath,
+		"-s",
+		"-s",
+		"-s",
+		"-Orientation",
+		"-n",
+		pathIn)
+
+	stdOut, _, err := runCmd(cmdExiftool)
+	fmt.Println("Orientation string", stdOut)
+
+	stdOut = strings.TrimSpace(stdOut)
+	// Check for number in expected range
+	orientN, err := strconv.ParseUint(stdOut, 10, 32)
+	if err != nil || orientN > 10 {
+
+		fmt.Println("ERROR parsing orientation", stdOut, err)
+		return "", err
+	}
+
+	return fmt.Sprint(orientN), err
+
+}
 
 func getThumbJPEG(pathIn, pathOut string) error {
 
@@ -47,7 +113,10 @@ func getThumbJPEG(pathIn, pathOut string) error {
 		thumbnailSize = "256"
 	}
 
-	cmd := exec.Command(
+	// Try to get the exif orientation before conversion
+	orientation, errExif := getExifOrientation(pathIn)
+
+	cmdFfmpeg := exec.Command(
 		ffmpegThumbnailerPath,
 		"-i",
 		pathIn,
@@ -57,17 +126,18 @@ func getThumbJPEG(pathIn, pathOut string) error {
 		thumbnailSize,
 	)
 
-	var out, stderr bytes.Buffer
-	cmd.Stdout = &out
-	cmd.Stderr = &stderr
-
-	err = cmd.Run()
+	stdOut, _, err := runCmd(cmdFfmpeg)
 	if err != nil {
-		fmt.Println(stderr.String())
 		return err
 	}
 
-	cmd.Wait()
+	fmt.Println(stdOut)
+
+	if errExif == nil {
+		//ignore errors while setting orientation
+		setExifOrientation(pathOut, orientation)
+	}
+
 	return err
 }
 
@@ -177,6 +247,7 @@ func main() {
 	thumbnailBucket = os.Getenv("S3_BUCKET_THUMBNAILS")
 	thumbnailSize = os.Getenv("THUMBNAIL_SIZE")
 	ffmpegThumbnailerPath = os.Getenv("FFMPEGTHUMBNAILER_PATH")
+	exiftoolPath = os.Getenv("EXIFTOOL_PATH")
 
 	useSSL := true
 
