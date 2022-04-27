@@ -14,7 +14,7 @@
 		<div class="col-xs-12 col-sm-12 col-md-4 col-lg-3">
 				{{range $index, $img := .Data.Images}}
 				{{if incolumn 0 $index }}
-				<a href="/albums/{{$.Data.Album}}/{{$img}}"  class="glightbox"> <img class="album-img" src="/albums/{{$.Data.Album}}/{{$img}}?thumbnail=true" alt="image" /> </a>
+				<a href="/albums/{{$.Data.Album}}/{{$img}}"  class="glightbox"> <img class="album-img" src="/thumbnails/{{$.Data.Album}}/{{$img}}.jpg" alt="image" /> </a>
 				{{end}}
 				{{else}} <strong>No Images</strong>
 				{{end}}
@@ -22,7 +22,7 @@
 		<div class="col-xs-12 col-sm-6 col-md-4 col-lg-3">
 				{{range $index, $img := .Data.Images}}
 				{{if incolumn 1 $index }}
-				<a href="/albums/{{$.Data.Album}}/{{$img}}" class="glightbox"> <img class="album-img" src="/albums/{{$.Data.Album}}/{{$img}}?thumbnail=true" alt="image" /> </a>
+				<a href="/albums/{{$.Data.Album}}/{{$img}}"  class="glightbox"> <img class="album-img" src="/thumbnails/{{$.Data.Album}}/{{$img}}.jpg" alt="image" /> </a>
 				{{end}}
 				{{else}} <strong>No Images</strong>
 				{{end}}
@@ -30,7 +30,7 @@
 		<div class="col-xs-12 col-sm-6 col-md-4 col-lg-3">
 				{{range $index, $img := .Data.Images}}
 				{{if incolumn 2 $index }}
-				<a href="/albums/{{$.Data.Album}}/{{$img}}" class="glightbox"> <img class="album-img" src="/albums/{{$.Data.Album}}/{{$img}}?thumbnail=true" alt="image" /> </a>
+				<a href="/albums/{{$.Data.Album}}/{{$img}}"  class="glightbox"> <img class="album-img" src="/thumbnails/{{$.Data.Album}}/{{$img}}.jpg" alt="image" /> </a>
 				{{end}}
 				{{else}} <strong>No Images</strong>
 				{{end}}
@@ -39,7 +39,7 @@
 		<div class="col-xs-12 col-sm-6 col-md-4 col-lg-3">
 				{{range $index, $img := .Data.Images}}
 				{{if incolumn 3 $index }}
-				<a href="/albums/{{$.Data.Album}}/{{$img}}" class="glightbox"> <img class="album-img" src="/albums/{{$.Data.Album}}/{{$img}}?thumbnail=true" alt="image" /> </a>
+				<a href="/albums/{{$.Data.Album}}/{{$img}}"  class="glightbox"> <img class="album-img" src="/thumbnails/{{$.Data.Album}}/{{$img}}.jpg" alt="image" /> </a>
 				{{end}}
 				{{else}} <strong>No Images</strong>
 				{{end}}

@@ -198,6 +198,7 @@ func main() {
 	r.GET("/", indexHandler)
 	r.GET("/albums/:album", albumHandler)
 	r.GET("/albums/:album/:image", imageHandler)
+	r.GET("/thumbnails/:album/:image", thumbnailHandler)
 
 	// Routes accessible to admins only
 	r.Use(verifyAdmin)

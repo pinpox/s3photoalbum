@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
-	"strconv"
+	"strings"
 	"time"
 )
 
@@ -30,7 +30,7 @@ func getAlbumsByUsername(username string) ([]Album, error) {
 		}
 		albums = append(albums, Album{
 			Name:  v,
-			Cover: "/albums/" + v + "/" + coverImg,
+			Cover: "/thumbnails/" + v + "/" + coverImg + ".jpg",
 		})
 	}
 	return albums, err
@@ -86,16 +86,14 @@ func getFullResURI(imgPath string) string {
 	return presignedURL.String()
 }
 
-func getThumbnailURI(imgPath string) string {
+func getThumbnailURI(thumbPath string) string {
 	// Set request parameters for content-disposition.
 	reqParams := make(url.Values)
 	// TODO for download
 	// reqParams.Set("response-content-disposition", "attachment; filename=\""+ps.ByName("image")+"\"")
 
-	thumbPath := imgPath + ".jpg"
-
 	// Check if the real file exists
-	if !checkBucketKeyExists(imgPath, mediaBucket) {
+	if !checkBucketKeyExists(strings.TrimSuffix(thumbPath, ".jpg"), mediaBucket) {
 		return "/static/missing.png"
 	}
 
@@ -115,16 +113,12 @@ func getThumbnailURI(imgPath string) string {
 
 }
 
-func imageHandler(c *gin.Context) {
-
+func thumbnailHandler(c *gin.Context) {
 	imgPath := path.Join(c.GetString("username"), c.Param("album"), c.Param("image"))
+	c.Redirect(http.StatusSeeOther, getThumbnailURI(imgPath))
+}
 
-	// Ignore error if any and default to false
-	thumbnail, _ := strconv.ParseBool(c.Query("thumbnail"))
-
-	if thumbnail {
-		c.Redirect(http.StatusSeeOther, getThumbnailURI(imgPath))
-	} else {
-		c.Redirect(http.StatusSeeOther, getFullResURI(imgPath))
-	}
+func imageHandler(c *gin.Context) {
+	imgPath := path.Join(c.GetString("username"), c.Param("album"), c.Param("image"))
+	c.Redirect(http.StatusSeeOther, getFullResURI(imgPath))
 }
