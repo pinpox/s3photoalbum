@@ -149,10 +149,10 @@ func makeThumbnailByKey(key string) error {
 		return err
 	}
 
-	return makeThumbnail(key, objInfo.ContentType, objInfo.ETag)
+	return makeThumbnail(key, objInfo.ETag)
 }
 
-func makeThumbnail(key, contentType, etag string) (err error) {
+func makeThumbnail(key, etag string) (err error) {
 
 	fmt.Println("Making thumbnail for:", key, "etag:", etag)
 	tmpInFileName := etag + path.Ext(key)
@@ -194,9 +194,9 @@ func makeThumbnail(key, contentType, etag string) (err error) {
 		thumbnailBucket,
 		newKey,
 		tmpOutFileName,
-		minio.PutObjectOptions{ContentType: contentType},
+		minio.PutObjectOptions{ContentType: "image/jpeg"},
 	); err == nil {
-		fmt.Println("Successfully uploaded object: ", info.Key)
+		fmt.Println("Successfully uploaded bytes: ", info)
 	}
 
 	return err
@@ -299,7 +299,7 @@ func main() {
 			if !checkBucketKeyExists(k.S3.Object.Key+".jpg", thumbnailSize) {
 
 				// No thumbnails exists yet, generate and upload
-				if err = makeThumbnail(k.S3.Object.Key, k.S3.Object.ContentType, k.S3.Object.ETag); err != nil {
+				if err = makeThumbnail(k.S3.Object.Key, k.S3.Object.ETag); err != nil {
 					// Something happened while generating or uploading the thumbnail
 					fmt.Println(err)
 					continue
