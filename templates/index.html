@@ -3,9 +3,9 @@
 <h2>Albums</h2>
 
 
-<div class="row">
+<div class="row start-xs start-sm start-md start-lg">
 		{{range $index, $album := .Data.Albums}}
-		<div class="col-lg-3">
+		<div class="col-xs-12 col-sm-6 col-md-4 col-lg-3">
 				<a href="/albums/{{$album.Name}}">
 						<div class="album-cover-container">
 								<img src="{{$album.Cover}}?thumbnail=true" alt="{{$album.Name}}" class="album-cover-image">
@@ -17,8 +17,6 @@
 		{{end}}
 
 </div>
-
-
 
 {{end}}
 

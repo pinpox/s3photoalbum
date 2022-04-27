@@ -21,10 +21,6 @@ footer {
 		height: 2.5rem;
 }
 
-.glightbox img {
-		width: 300px
-}
-
 .row {
 		display: flex;
 		flex-wrap: wrap;
@@ -32,34 +28,10 @@ footer {
 		justify-content: center;
 }
 
-/* Create four equal columns that sits next to each other */
-.column {
-
-		flex: 20%;
-		max-width: 20%;
-		padding: 0 4px;
-}
-
-.column img {
-		margin-top: 8px;
+.album-img {
+		margin: 8px;
 		vertical-align: middle;
 		width: 100%;
-}
-
-/* Responsive layout - makes a two column-layout instead of four columns */
-@media screen and (max-width: 800px) {
-		.column {
-				flex: 50%;
-				max-width: 50%;
-		}
-}
-
-/* Responsive layout - makes the two columns stack on top of each other instead of next to each other */
-@media screen and (max-width: 600px) {
-		.column {
-				flex: 100%;
-				max-width: 100%;
-		}
 }
 
 .login {
@@ -151,10 +123,10 @@ li a:hover {
 		background: var(--color-dark);
 		bottom: 0;
 		color: var(--color-accent);
-		font-size: 2em;
+		font-size: 2vh;
 		opacity: .7;
-		padding-bottom: 20px;
-		padding-top: 20px;
+		padding-bottom: 2vh;
+		padding-top: 2vh;
 		position: absolute;
 		text-align: center;
 		transition: .3s ease;
@@ -165,8 +137,8 @@ li a:hover {
 /* Container needed to position the overlay. Adjust the width as needed */
 .album-cover-container {
 		position: relative;
-		width: calc(100% - 6px); /* substract border */
 		border: 3px solid var(--color-dark);
+		margin-bottom: 1em;
 }
 
 .album-cover-container:hover {
