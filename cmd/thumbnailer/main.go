@@ -141,6 +141,17 @@ func getThumbJPEG(pathIn, pathOut string) error {
 	return err
 }
 
+func makeThumbnailByKey(key string) error {
+
+	objInfo, err := minioClient.StatObject(context.Background(), mediaBucket, key, minio.StatObjectOptions{})
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+
+	return makeThumbnail(key, objInfo.ContentType, objInfo.ETag)
+}
+
 func makeThumbnail(key, contentType, etag string) (err error) {
 
 	fmt.Println("Making thumbnail for:", key, "etag:", etag)
@@ -185,7 +196,7 @@ func makeThumbnail(key, contentType, etag string) (err error) {
 		tmpOutFileName,
 		minio.PutObjectOptions{ContentType: contentType},
 	); err == nil {
-		fmt.Println("Successfully uploaded bytes: ", info)
+		fmt.Println("Successfully uploaded object: ", info.Key)
 	}
 
 	return err
@@ -262,14 +273,22 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	fmt.Println("Missing thumbnails")
-	fmt.Println(getMissingThumbnails())
+	fmt.Println("Checking for missing thumbnails")
+	missingThumbs := getMissingThumbnails()
+	fmt.Println(len(missingThumbs), "thumbnails missing")
+
+	for _, v := range missingThumbs {
+		fmt.Printf("Creating thumbnail for: %s\n", v)
+		if err := makeThumbnailByKey(v); err != nil {
+			fmt.Println("Error makeing thumbnail for: ", v)
+		}
+	}
 
 	// Listen for bucket notifications
 	for notificationInfo := range minioClient.ListenBucketNotification(context.Background(), mediaBucket, "", "", []string{
 		"s3:ObjectCreated:*",
-		"s3:ObjectAccessed:*",
-		"s3:ObjectRemoved:*",
+		// "s3:ObjectAccessed:*",
+		// "s3:ObjectRemoved:*",
 	}) {
 		if notificationInfo.Err != nil {
 			fmt.Println(notificationInfo.Err)
@@ -277,28 +296,24 @@ func main() {
 
 		for _, k := range notificationInfo.Records {
 
-			// Check if object exists. If it does not an error will be thrown.
-			objInfo, err := minioClient.StatObject(context.Background(), thumbnailBucket, k.S3.Object.Key+".jpg", minio.StatObjectOptions{})
-			if err != nil {
+			if !checkBucketKeyExists(k.S3.Object.Key+".jpg", thumbnailSize) {
 
-				errResponse := minio.ToErrorResponse(err)
-				if errResponse.Code == "NoSuchKey" {
-
-					// No thumbnails exists yet, generate and upload
-					if err = makeThumbnail(k.S3.Object.Key, k.S3.Object.ContentType, k.S3.Object.ETag); err != nil {
-						// Something happened while generating or uploading the thumbnail
-						fmt.Println(err)
-						continue
-					}
-
-				} else {
-					// A different error occured (e.g. access denied, bucket non-existant)
-					log.Fatal(err)
+				// No thumbnails exists yet, generate and upload
+				if err = makeThumbnail(k.S3.Object.Key, k.S3.Object.ContentType, k.S3.Object.ETag); err != nil {
+					// Something happened while generating or uploading the thumbnail
+					fmt.Println(err)
+					continue
 				}
-
-			} else {
-				fmt.Println("Thumbnail exists:", objInfo.Key)
 			}
 		}
 	}
+}
+
+func checkBucketKeyExists(key, bucket string) bool {
+	_, err := minioClient.StatObject(context.Background(), bucket, key, minio.StatObjectOptions{})
+
+	if err != nil && minio.ToErrorResponse(err).Code != "NoSuchKey" {
+		fmt.Println("Error: ", err)
+	}
+	return err == nil
 }
