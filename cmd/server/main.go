@@ -188,7 +188,18 @@ func main() {
 	r.POST("/login", login)
 
 	r.GET("/login", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "login.html", nil)
+
+	td := templateData{
+
+		Context: c,
+		Data: struct {
+			Title  string
+			Error string
+		}{
+			Title:  "Login",
+		},
+	}
+		c.HTML(http.StatusOK, "login.html", td)
 	})
 
 	r.Static("/static", path.Join(resourcesDir, "static"))

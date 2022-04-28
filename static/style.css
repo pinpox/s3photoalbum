@@ -3,8 +3,18 @@
 		--color-dark: #1c1524;
 		--color-light: #ccc9d1;
 		--color-accent: #6b1aed;
+
+		--screen-size-m: 800px;
+		--screen-size-s: 600px;
+
 		font-family: monospace;
+
 }
+
+@media (max-width: var(--screen-size-m)) { }
+@media (max-width: var(--screen-size-s)) { }
+
+/* * { box-sizing: border-box; } */
 
 body {
 		background-color: var(--color-dark);
@@ -21,33 +31,27 @@ footer {
 		height: 2.5rem;
 }
 
-.row {
-		display: flex;
-		flex-wrap: wrap;
-		padding: 0 4px;
-		justify-content: center;
-}
-
-.album-img {
-		margin: 8px;
-		vertical-align: middle;
-		width: 100%;
-}
-
 .login {
 		display:flex;
 		flex-direction: column;
-
-
 }
+
 .center {
 		display: flex;
 		justify-content: center;
 		align-items: center;
 }
-.container {
+
+.main-container {
+
+		margin: auto;
 		min-height: 90vh;
+		padding-top: 20px;
+		max-width: 80%;
 }
+
+
+/* login.html */
 
 .login-container {
 		height: 90vh;
@@ -80,7 +84,9 @@ input , button{
 		box-sizing: border-box;
 }
 
-ul {
+/* nav.html */
+
+.navlist {
 		list-style-type: none;
 		margin: 0;
 		padding: 0;
@@ -93,30 +99,31 @@ ul {
 		width: 100%;
 }
 
+nav {
+		margin-bottom: 10px;
+}
+
 nav ul li {
 		float: left;
 		display: block;
 		padding: 10px 16px;
 }
 
-li a {
+.navlist li a {
 		color: white;
 		text-align: center;
 		text-decoration: none;
 }
 
-li a:hover {
+.navlist li a:hover {
 		background-color: var(--color-accent);
 }
 
-/* Albums */ 
-
-
+/* index.html */
 /* When you mouse over the container, fade in the overlay title */
 .album-cover-container:hover .album-cover-overlay {
 		opacity: .9;
 }
-
 
 /* The overlay effect - lays on top of the container and over the image */
 .album-cover-overlay {
@@ -133,8 +140,15 @@ li a:hover {
 		width: 100%;
 }
 
+.album-list {
+		display: flex;
+}
 
-/* Container needed to position the overlay. Adjust the width as needed */
+.album-cover {
+		width: 25%;
+		padding: .5vw;
+}
+
 .album-cover-container {
 		position: relative;
 		border: 3px solid var(--color-dark);
@@ -145,7 +159,6 @@ li a:hover {
 		border: 3px solid var(--color-accent);
 }
 
-/* Make the image to responsive */
 .album-cover-image {
 		display: block;
 		object-fit: cover;
@@ -153,4 +166,68 @@ li a:hover {
 		aspect-ratio: 1/1;
 }
 
+/* album.html */
 
+.albumitem {
+		flex-grow: 1;
+		margin: 5px;
+		height: 100%;
+}
+
+
+.albumlist {
+		list-style-type: none;
+		display: flex;
+		flex-wrap: wrap;
+		padding: 0px;
+}
+
+.albumlist li {
+		height: 40vh;
+		flex-grow: 1;
+		margin: 10px;
+}
+
+.albumlist li:last-child {
+		flex-grow: 100;
+}
+
+img {
+		max-height: 100%;
+		min-height: 100%;
+		min-width: 100%;
+		max-width: 100%;
+		object-fit: cover;
+		vertical-align: bottom;
+}
+
+@media (max-aspect-ratio: 1/1) {
+		.albumlist li {
+				height: 30vh;
+		}
+}
+
+@media (max-height: 480px) {
+		.albumlist li {
+				border: 1px solid blue;
+				height: 80vh;
+		}
+}
+
+@media (max-aspect-ratio: 1/1) and (max-width: 480px) {
+		.albumlist {
+				flex-direction: row;
+		}
+
+		.albumlist li {
+				border: 1px solid pink;
+				height: auto;
+				width: 100%;
+		}
+
+		.albumlist li img {
+				width: 100%;
+				max-height: 75vh;
+				min-width: 0;
+		}
+}

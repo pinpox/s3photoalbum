@@ -11,25 +11,39 @@ func login(c *gin.Context) {
 	formUser := c.PostForm("username")
 	formPass := c.PostForm("password")
 
+	td := templateData{
+		Context: c,
+		Data: struct {
+			Title string
+			Error string
+		}{
+			Title: "Login",
+			Error: "Authentication failed",
+		},
+	}
+
 	user, err := findUserByUsername(formUser)
 	if err != nil {
 		// User not found
 		log.Warn("User not found", err)
-		c.HTML(http.StatusOK, "login.html", "Authentication failed")
+		c.HTML(http.StatusOK, "login.html", td)
+		c.Abort()
 		return
 	}
 
 	// Comparing the password with the hash
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(formPass)); err != nil {
 		log.Warn("Invalid password", err)
-		c.HTML(http.StatusOK, "login.html", "Authentication failed")
+		c.HTML(http.StatusOK, "login.html", td)
+		c.Abort()
 		return
 	}
 
 	token, err := generateToken(*user)
 	if err != nil {
 		log.Warn("token error", err)
-		c.HTML(http.StatusOK, "login.html", "Authentication failed")
+		c.HTML(http.StatusOK, "login.html", td)
+		c.Abort()
 		return
 	}
 

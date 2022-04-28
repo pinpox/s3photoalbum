@@ -1,15 +1,9 @@
+{{define "title"}}Login{{end}}
+{{define "content"}}
 
-<!DOCTYPE html>
-<html>
-	<head>
-		<meta charset="UTF-8">
-		<title>Login</title>
-		<link rel="stylesheet" href="/static/style.css" />
-	</head>
-	<body>
 		<div class="login-container center">
 			<div class="login">
-				{{if .}} <span class="error-message">{{.}}</span> {{end}}
+				{{if .Data.Error}} <span class="error-message">{{.Data.Error}}</span> {{end}}
 				<form action="/login" method="post">
 					<div>
 						<input type="text" placeholder="Username" name="username" required autofocus="on">
@@ -23,5 +17,10 @@
 				</form>
 			</div>
 		</div>
-	</body>
-</html>
+
+
+{{end}}
+
+{{template "layout.html" .}}
+
+
