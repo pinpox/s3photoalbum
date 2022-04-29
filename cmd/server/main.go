@@ -189,17 +189,10 @@ func main() {
 
 	r.GET("/login", func(c *gin.Context) {
 
-	td := templateData{
-
-		Context: c,
-		Data: struct {
-			Title  string
-			Error string
-		}{
-			Title:  "Login",
-		},
-	}
-		c.HTML(http.StatusOK, "login.html", td)
+		c.HTML(http.StatusOK, "login.html", gin.H{
+				"context": c,
+				"title": "Login",
+		})
 	})
 
 	r.Static("/static", path.Join(resourcesDir, "static"))
@@ -222,11 +215,6 @@ func main() {
 	if err := r.Run(envListenAddress + ":" + envListenPort); err != nil {
 		log.Fatal(err)
 	}
-}
-
-type templateData struct {
-	Context *gin.Context
-	Data    interface{}
 }
 
 func listFirstObjectByPrefix(prefix string) (string, error) {
@@ -290,17 +278,9 @@ func indexHandler(c *gin.Context) {
 		c.AbortWithStatus(http.StatusInternalServerError)
 	}
 
-	td := templateData{
-
-		Context: c,
-		Data: struct {
-			Title  string
-			Albums []Album
-		}{
-			Title:  "Albums",
-			Albums: albums,
-		},
-	}
-
-	c.HTML(http.StatusOK, "index.html", td)
+	c.HTML(http.StatusOK, "index.html", gin.H{
+			"title": "Albums",
+			"albums": albums,
+			"context": c,
+	})
 }

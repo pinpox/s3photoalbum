@@ -1,9 +1,9 @@
 <nav class="menu">
 		<ul class="navlist">
 				<li><a href="/">Index</a></li>
-				{{if isAdmin .Context }}
+				{{if isAdmin .context }}
 				<li><a href="/users">Users</a></li>
 				{{end}}
-				<li style="float:right">{{getUsername .Context}}</li>
+				<li style="float:right">{{getUsername .context}}</li>
 		</ul>
 </nav>

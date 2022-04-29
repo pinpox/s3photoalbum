@@ -11,15 +11,10 @@ func login(c *gin.Context) {
 	formUser := c.PostForm("username")
 	formPass := c.PostForm("password")
 
-	td := templateData{
-		Context: c,
-		Data: struct {
-			Title string
-			Error string
-		}{
-			Title: "Login",
-			Error: "Authentication failed",
-		},
+	td := gin.H{
+			"context": c,
+			"title": "Login",
+			"error": "Authentication failed",
 	}
 
 	user, err := findUserByUsername(formUser)

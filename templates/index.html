@@ -2,14 +2,8 @@
 {{define "content"}}
 <h2>Albums</h2>
 
-<style>
-
-
-
-</style>
-
 <div class="album-list">
-		{{range $index, $album := .Data.Albums}}
+		{{range $index, $album := .albums}}
 		<div class="album-cover">
 				<a href="/albums/{{$album.Name}}">
 						<div class="album-cover-container">

@@ -3,7 +3,7 @@
 
 		<div class="login-container center">
 			<div class="login">
-				{{if .Data.Error}} <span class="error-message">{{.Data.Error}}</span> {{end}}
+				{{if .error}} <span class="error-message">{{.error}}</span> {{end}}
 				<form action="/login" method="post">
 					<div>
 						<input type="text" placeholder="Username" name="username" required autofocus="on">

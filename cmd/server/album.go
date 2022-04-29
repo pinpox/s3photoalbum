@@ -45,20 +45,12 @@ func albumHandler(c *gin.Context) {
 		c.AbortWithStatus(http.StatusInternalServerError)
 	}
 
-	td := templateData{
-		Context: c,
-		Data: struct {
-			Album   string
-			Images  []string
-			Context *gin.Context
-		}{
-			Album:   c.Param("album"),
-			Images:  images,
-			Context: c,
-		},
-	}
-
-	c.HTML(http.StatusOK, "album.html", td)
+	c.HTML(http.StatusOK, "album.html", 
+	gin.H{
+			"context": c,
+			"albumTitle": c.Param("album"),
+			"images": images,
+	})
 }
 
 func checkBucketKeyExists(key, bucket string) bool {
