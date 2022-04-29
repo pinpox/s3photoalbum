@@ -2,10 +2,15 @@
 {{define "content"}}
 <h2>Albums</h2>
 
+<style>
 
-<div class="row start-xs start-sm start-md start-lg">
+
+
+</style>
+
+<div class="album-list">
 		{{range $index, $album := .Data.Albums}}
-		<div class="col-xs-12 col-sm-6 col-md-4 col-lg-3">
+		<div class="album-cover">
 				<a href="/albums/{{$album.Name}}">
 						<div class="album-cover-container">
 								<img src="{{$album.Cover}}" alt="{{$album.Name}}" class="album-cover-image">
@@ -13,9 +18,7 @@
 						</div>
 				</a>
 		</div>
-		{{else}} <strong>No Albums</strong>
-		{{end}}
-
+		{{else}} <strong>No Albums</strong> {{end}}
 </div>
 
 {{end}}
