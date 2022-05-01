@@ -1,6 +1,6 @@
 module s3photoalbum
 
-go 1.17
+go 1.18
 
 require (
 	github.com/gin-contrib/multitemplate v0.0.0-20220323084503-710510e67c20

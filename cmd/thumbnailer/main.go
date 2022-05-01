@@ -14,14 +14,19 @@ import (
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	// "github.com/disintegration/imaging"
+
+	"s3photoalbum/internal"
 )
 
+var config s3photoalbum.ThumbnailerConfig
+
 var minioClient *minio.Client
-var mediaBucket string
-var thumbnailBucket string
-var thumbnailSize string
-var ffmpegThumbnailerPath string
-var exiftoolPath string
+
+// var mediaBucket string
+// var thumbnailBucket string
+// var thumbnailSize string
+// var ffmpegThumbnailerPath string
+// var exiftoolPath string
 
 func runCmd(cmd *exec.Cmd) (stdout, stderr string, err error) {
 
@@ -46,7 +51,7 @@ func setExifOrientation(pathIn, orientation string) error {
 	//     1 image files updated
 
 	cmdExiftool := exec.Command(
-		exiftoolPath,
+		config.ExifToolPath,
 		"-Orientation="+orientation,
 		"-n",
 		"-overwrite_original",
@@ -64,7 +69,7 @@ func getExifOrientation(pathIn string) (string, error) {
 	// 6
 
 	cmdExiftool := exec.Command(
-		exiftoolPath,
+		config.ExifToolPath,
 		"-s",
 		"-s",
 		"-s",
@@ -108,22 +113,17 @@ func getThumbJPEG(pathIn, pathOut string) error {
 
 	var err error
 
-	size, err := strconv.ParseUint(thumbnailSize, 10, 32)
-	if err != nil || size < 5 {
-		thumbnailSize = "256"
-	}
-
 	// Try to get the exif orientation before conversion
 	orientation, errExif := getExifOrientation(pathIn)
 
 	cmdFfmpeg := exec.Command(
-		ffmpegThumbnailerPath,
+		config.FfmpegThumbnailerPath,
 		"-i",
 		pathIn,
 		"-o",
 		pathOut,
 		"-s",
-		thumbnailSize,
+		config.ThumbnailSize,
 	)
 
 	stdOut, _, err := runCmd(cmdFfmpeg)
@@ -144,7 +144,7 @@ func getThumbJPEG(pathIn, pathOut string) error {
 
 func makeThumbnailByKey(key string) error {
 
-	objInfo, err := minioClient.StatObject(context.Background(), mediaBucket, key, minio.StatObjectOptions{})
+	objInfo, err := minioClient.StatObject(context.Background(),config.S3MediaBucket, key, minio.StatObjectOptions{})
 	if err != nil {
 		fmt.Println(err)
 		return err
@@ -162,7 +162,7 @@ func makeThumbnail(key, etag string) (err error) {
 
 	err = minioClient.FGetObject(
 		context.Background(),
-		mediaBucket,
+		config.S3MediaBucket,
 		key,
 		tmpInFileName,
 		minio.GetObjectOptions{},
@@ -195,7 +195,7 @@ func makeThumbnail(key, etag string) (err error) {
 
 	if info, err := minioClient.FPutObject(
 		context.Background(),
-		thumbnailBucket,
+		config.S3ThumbnailBucket,
 		newKey,
 		tmpOutFileName,
 		minio.PutObjectOptions{ContentType: "image/jpeg"},
@@ -227,8 +227,8 @@ func getMissingThumbnails() []string {
 
 	defer cancel()
 
-	thumbsCh := minioClient.ListObjects(ctx, thumbnailBucket, minio.ListObjectsOptions{Recursive: true})
-	mediaCh := minioClient.ListObjects(ctx, mediaBucket, minio.ListObjectsOptions{Recursive: true})
+	thumbsCh := minioClient.ListObjects(ctx, config.S3ThumbnailBucket, minio.ListObjectsOptions{Recursive: true})
+	mediaCh := minioClient.ListObjects(ctx,config.S3MediaBucket, minio.ListObjectsOptions{Recursive: true})
 
 	var mediaKeys []string
 	var thumbKeys []string
@@ -255,22 +255,15 @@ func getMissingThumbnails() []string {
 
 func main() {
 
-	endpoint := os.Getenv("S3_ENDPOINT")
-	accessKeyID := os.Getenv("S3_ACCESSKEY")
-	secretAccessKey := os.Getenv("S3_SECRETKEY")
-	mediaBucket = os.Getenv("S3_BUCKET_MEDIA")
-	thumbnailBucket = os.Getenv("S3_BUCKET_THUMBNAILS")
-	thumbnailSize = os.Getenv("THUMBNAIL_SIZE")
-	ffmpegThumbnailerPath = os.Getenv("FFMPEGTHUMBNAILER_PATH")
-	exiftoolPath = os.Getenv("EXIFTOOL_PATH")
+	config = s3photoalbum.LoadThumbnailerConfig()
 
 	useSSL := true
 
 	var err error
 
 	// Initialize minio client object.
-	minioClient, err = minio.New(endpoint, &minio.Options{
-		Creds:  credentials.NewStaticV4(accessKeyID, secretAccessKey, ""),
+	minioClient, err = minio.New(config.S3Endpoint, &minio.Options{
+		Creds:  credentials.NewStaticV4(config.S3AccessKey, config.S3SecretKey, ""),
 		Secure: useSSL,
 	})
 	if err != nil {
@@ -289,7 +282,7 @@ func main() {
 	}
 
 	// Listen for bucket notifications
-	for notificationInfo := range minioClient.ListenBucketNotification(context.Background(), mediaBucket, "", "", []string{
+	for notificationInfo := range minioClient.ListenBucketNotification(context.Background(), config.S3MediaBucket, "", "", []string{
 		"s3:ObjectCreated:*",
 		// "s3:ObjectAccessed:*",
 		// "s3:ObjectRemoved:*",
@@ -300,7 +293,7 @@ func main() {
 
 		for _, k := range notificationInfo.Records {
 
-			if !checkBucketKeyExists(k.S3.Object.Key+".jpg", thumbnailSize) {
+			if !checkBucketKeyExists(k.S3.Object.Key+".jpg", config.S3ThumbnailBucket) {
 
 				// No thumbnails exists yet, generate and upload
 				if err = makeThumbnail(k.S3.Object.Key, k.S3.Object.ETag); err != nil {

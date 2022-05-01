@@ -18,13 +18,12 @@ import (
 	"gorm.io/gorm"
 )
 
-var minioClient *minio.Client
-
-var config s3photoalbum.Config
-
-// Environment variables
-
-var DB *gorm.DB
+var (
+	minioClient *minio.Client
+	config      s3photoalbum.ServerConfig
+	DB          *gorm.DB
+	log         *zap.SugaredLogger
+)
 
 func loadTemplates(templatesDir string) multitemplate.Renderer {
 	r := multitemplate.NewRenderer()
@@ -58,44 +57,16 @@ func loadTemplates(templatesDir string) multitemplate.Renderer {
 	return r
 }
 
-var log *zap.SugaredLogger
-
 func main() {
+
 	var err error
 
-	config = s3photoalbum.LoadConfig(".")
-
-	// Initialize logger
-	// level := zap.NewAtomicLevel()
-	// // level.SetLevel(zap.DebugLevel)
-
-	// var cfg = zap.Config{
-	// 	Level:    level,
-	// 	Encoding: "console",
-	// }
-
-	// logger, err := cfg.Build()
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// defer logger.Sync()
-
-	// // logger, _ := zap.NewDevelopment()
-	// // defer logger.Sync() // flushes buffer, if any
-	// log = logger.Sugar()
-
-	// TODO set to release on release
-	logger, err := zap.NewDevelopment()
-	if err != nil {
-		panic(err)
-	}
-	defer logger.Sync() // flushes buffer, if any
-	log = logger.Sugar()
+	config = s3photoalbum.LoadServerConfig()
+	log = s3photoalbum.NewLogger(config.ModeDevelop)
 
 	var db *gorm.DB
 
 	// Setup database
-	// TODO use an actual file for persistance
 	// db, err = gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	db, err = gorm.Open(sqlite.Open("data.db"), &gorm.Config{})
 	if err != nil {
@@ -128,21 +99,17 @@ func main() {
 
 	// Load templates with custom renderer
 	r.HTMLRender = loadTemplates(path.Join(config.ResourcesDir, "templates"))
-	// r.Delims("{[{", "}]}")
 
 	// Set up routes
 
 	// Routes accessible to anyone
-	r.POST("/login", login)
-
 	r.GET("/login", func(c *gin.Context) {
-
 		c.HTML(http.StatusOK, "login.html", gin.H{
 			"context": c,
 			"title":   "Login",
 		})
 	})
-
+	r.POST("/login", login)
 	r.Static("/static", path.Join(config.ResourcesDir, "static"))
 
 	// Routes accessible to logged in users
