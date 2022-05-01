@@ -2,6 +2,7 @@ package main
 
 import (
 	"path/filepath"
+	"github.com/pinpox/s3photoalbum/config"
 
 	"github.com/gin-contrib/multitemplate"
 	"go.uber.org/zap"
