@@ -1,4 +1,4 @@
-package config
+package s3photoalbum
 
 import (
 	"github.com/kelseyhightower/envconfig"

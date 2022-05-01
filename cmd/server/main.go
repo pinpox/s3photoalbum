@@ -2,7 +2,7 @@ package main
 
 import (
 	"path/filepath"
-	"github.com/pinpox/s3photoalbum/config"
+	"s3photoalbum/internal"
 
 	"github.com/gin-contrib/multitemplate"
 	"go.uber.org/zap"
@@ -20,12 +20,11 @@ import (
 
 var minioClient *minio.Client
 
-var config Config
+var config s3photoalbum.Config
 
 // Environment variables
 
 var DB *gorm.DB
-
 
 func loadTemplates(templatesDir string) multitemplate.Renderer {
 	r := multitemplate.NewRenderer()
@@ -61,13 +60,10 @@ func loadTemplates(templatesDir string) multitemplate.Renderer {
 
 var log *zap.SugaredLogger
 
-
 func main() {
 	var err error
 
-
- config =  LoadConfig(".")
-
+	config = s3photoalbum.LoadConfig(".")
 
 	// Initialize logger
 	// level := zap.NewAtomicLevel()
@@ -121,7 +117,7 @@ func main() {
 	// Initialize minio client object.
 	minioClient, err = minio.New(config.S3Endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(config.S3AccessKey, config.S3SecretKey, ""),
-		Secure:config.S3UseSsl,
+		Secure: config.S3UseSsl,
 	})
 	if err != nil {
 		log.Fatal(err)
@@ -142,8 +138,8 @@ func main() {
 	r.GET("/login", func(c *gin.Context) {
 
 		c.HTML(http.StatusOK, "login.html", gin.H{
-				"context": c,
-				"title": "Login",
+			"context": c,
+			"title":   "Login",
 		})
 	})
 
@@ -177,8 +173,8 @@ func indexHandler(c *gin.Context) {
 	}
 
 	c.HTML(http.StatusOK, "index.html", gin.H{
-			"title": "Albums",
-			"albums": albums,
-			"context": c,
+		"title":   "Albums",
+		"albums":  albums,
+		"context": c,
 	})
 }
