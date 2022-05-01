@@ -15,7 +15,7 @@
 		{{range $index, $img := .images}}
 
 		<li>
-				<a href="/albums/{{$.Data.Album}}/{{$img}}" class="glightbox">
+				<a href="/albums/{{$.albumTitle}}/{{$img}}" class="glightbox">
 						<img class="" src="/thumbnails/{{$.albumTitle}}/{{$img}}.jpg" alt="image" />
 				</a>
 		</li>
