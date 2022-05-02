@@ -1,7 +1,7 @@
 # s3photoalbum
 
 <p align="center">
-  <img width="460" height="300" src="./logo.svg">
+  <img height="200" src="./logo.svg">
 </p>
 
 Show photoalbums from S3-compatible buckets, e.g. Minio.
