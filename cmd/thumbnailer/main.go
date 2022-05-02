@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"log"
+	"go.uber.org/zap"
 	"os"
 	"os/exec"
 	"path"
@@ -13,20 +13,15 @@ import (
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
-	// "github.com/disintegration/imaging"
 
 	"s3photoalbum/internal"
 )
 
-var config s3photoalbum.ThumbnailerConfig
-
-var minioClient *minio.Client
-
-// var mediaBucket string
-// var thumbnailBucket string
-// var thumbnailSize string
-// var ffmpegThumbnailerPath string
-// var exiftoolPath string
+var (
+	minioClient *minio.Client
+	config      s3photoalbum.ThumbnailerConfig
+	log         *zap.SugaredLogger
+)
 
 func runCmd(cmd *exec.Cmd) (stdout, stderr string, err error) {
 
@@ -34,11 +29,11 @@ func runCmd(cmd *exec.Cmd) (stdout, stderr string, err error) {
 	cmd.Stdout = &stdOut
 	cmd.Stderr = &stdErr
 
-	fmt.Println(cmd.String())
+	log.Debug(cmd.String())
 	err = cmd.Run()
 	if err != nil {
-		fmt.Println(stdOut.String())
-		fmt.Println(stdErr.String())
+		log.Error(stdOut.String())
+		log.Error(stdErr.String())
 	}
 
 	return stdOut.String(), stdErr.String(), err
@@ -78,14 +73,14 @@ func getExifOrientation(pathIn string) (string, error) {
 		pathIn)
 
 	stdOut, _, err := runCmd(cmdExiftool)
-	fmt.Println("Orientation string", stdOut)
+	log.Debug("Orientation string", stdOut)
 
 	stdOut = strings.TrimSpace(stdOut)
 	// Check for number in expected range
 	orientN, err := strconv.ParseUint(stdOut, 10, 32)
 	if err != nil || orientN > 10 {
 
-		fmt.Println("ERROR parsing orientation", stdOut, err)
+		log.Error("ERROR parsing orientation", stdOut, err)
 		return "", err
 	}
 
@@ -128,11 +123,11 @@ func getThumbJPEG(pathIn, pathOut string) error {
 
 	stdOut, _, err := runCmd(cmdFfmpeg)
 	if err != nil {
-		fmt.Println("FFMpeg failed to extact thumbmail", stdOut)
+		log.Error("FFMpeg failed to extact thumbmail", stdOut)
 		return err
 	}
 
-	fmt.Println(stdOut)
+	log.Debug(stdOut)
 
 	if errExif == nil {
 		//ignore errors while setting orientation
@@ -144,9 +139,9 @@ func getThumbJPEG(pathIn, pathOut string) error {
 
 func makeThumbnailByKey(key string) error {
 
-	objInfo, err := minioClient.StatObject(context.Background(),config.S3MediaBucket, key, minio.StatObjectOptions{})
+	objInfo, err := minioClient.StatObject(context.Background(), config.S3MediaBucket, key, minio.StatObjectOptions{})
 	if err != nil {
-		fmt.Println(err)
+		log.Error(err)
 		return err
 	}
 
@@ -155,7 +150,7 @@ func makeThumbnailByKey(key string) error {
 
 func makeThumbnail(key, etag string) (err error) {
 
-	fmt.Println("Making thumbnail for:", key, "etag:", etag)
+	log.Debug("Making thumbnail for:", key, "etag:", etag)
 	tmpInFileName := etag + path.Ext(key)
 	tmpOutFileName := etag + path.Ext(key) + ".jpg"
 	newKey := key + ".jpg"
@@ -175,14 +170,14 @@ func makeThumbnail(key, etag string) (err error) {
 	}()
 
 	if err != nil {
-		fmt.Println("Failed to retrieve original media:", key)
+		log.Error("Failed to retrieve original media:", key)
 
 		return err
 	}
 
 	err = getThumbJPEG(tmpInFileName, tmpOutFileName)
 	if err != nil {
-		fmt.Println("Failed to extrat JPEG for:", key)
+		log.Error("Failed to extrat JPEG for:", key)
 		return err
 	}
 
@@ -200,7 +195,7 @@ func makeThumbnail(key, etag string) (err error) {
 		tmpOutFileName,
 		minio.PutObjectOptions{ContentType: "image/jpeg"},
 	); err == nil {
-		fmt.Println("Successfully uploaded bytes: ", info)
+		log.Info("Successfully uploaded bytes: ", info)
 	}
 
 	return err
@@ -228,14 +223,14 @@ func getMissingThumbnails() []string {
 	defer cancel()
 
 	thumbsCh := minioClient.ListObjects(ctx, config.S3ThumbnailBucket, minio.ListObjectsOptions{Recursive: true})
-	mediaCh := minioClient.ListObjects(ctx,config.S3MediaBucket, minio.ListObjectsOptions{Recursive: true})
+	mediaCh := minioClient.ListObjects(ctx, config.S3MediaBucket, minio.ListObjectsOptions{Recursive: true})
 
 	var mediaKeys []string
 	var thumbKeys []string
 
 	for object := range mediaCh {
 		if object.Err != nil {
-			fmt.Println(object.Err)
+			log.Error(object.Err)
 			break
 		}
 		mediaKeys = append(mediaKeys, object.Key)
@@ -243,7 +238,7 @@ func getMissingThumbnails() []string {
 
 	for object := range thumbsCh {
 		if object.Err != nil {
-			fmt.Println(object.Err)
+			log.Error(object.Err)
 			break
 		}
 		thumbKeys = append(thumbKeys, strings.TrimSuffix(object.Key, ".jpg"))
@@ -256,6 +251,7 @@ func getMissingThumbnails() []string {
 func main() {
 
 	config = s3photoalbum.LoadThumbnailerConfig()
+	log = s3photoalbum.NewLogger(config.ModeDevelop)
 
 	useSSL := true
 
@@ -267,17 +263,17 @@ func main() {
 		Secure: useSSL,
 	})
 	if err != nil {
-		log.Fatalln(err)
+		panic(err)
 	}
 
-	fmt.Println("Checking for missing thumbnails")
+	log.Info("Checking for missing thumbnails")
 	missingThumbs := getMissingThumbnails()
-	fmt.Println(len(missingThumbs), "thumbnails missing")
+	log.Info(len(missingThumbs), "thumbnails missing")
 
 	for _, v := range missingThumbs {
-		fmt.Printf("Creating thumbnail for: %s\n", v)
+		log.Info("Creating thumbnail for: %s\n", v)
 		if err := makeThumbnailByKey(v); err != nil {
-			fmt.Println("Error making thumbnail for: ", v)
+			log.Error("Error making thumbnail for: ", v)
 		}
 	}
 
@@ -288,7 +284,7 @@ func main() {
 		// "s3:ObjectRemoved:*",
 	}) {
 		if notificationInfo.Err != nil {
-			fmt.Println(notificationInfo.Err)
+			log.Error(notificationInfo.Err)
 		}
 
 		for _, k := range notificationInfo.Records {
@@ -298,7 +294,7 @@ func main() {
 				// No thumbnails exists yet, generate and upload
 				if err = makeThumbnail(k.S3.Object.Key, k.S3.Object.ETag); err != nil {
 					// Something happened while generating or uploading the thumbnail
-					fmt.Println(err)
+					log.Error(err)
 					continue
 				}
 			}
@@ -310,7 +306,7 @@ func checkBucketKeyExists(key, bucket string) bool {
 	_, err := minioClient.StatObject(context.Background(), bucket, key, minio.StatObjectOptions{})
 
 	if err != nil && minio.ToErrorResponse(err).Code != "NoSuchKey" {
-		fmt.Println("Error: ", err)
+		log.Error(err)
 	}
 	return err == nil
 }
