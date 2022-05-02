@@ -45,20 +45,12 @@ func albumHandler(c *gin.Context) {
 		c.AbortWithStatus(http.StatusInternalServerError)
 	}
 
-	td := templateData{
-		Context: c,
-		Data: struct {
-			Album   string
-			Images  []string
-			Context *gin.Context
-		}{
-			Album:   c.Param("album"),
-			Images:  images,
-			Context: c,
-		},
-	}
-
-	c.HTML(http.StatusOK, "album.html", td)
+	c.HTML(http.StatusOK, "album.html", 
+	gin.H{
+			"context": c,
+			"albumTitle": c.Param("album"),
+			"images": images,
+	})
 }
 
 func checkBucketKeyExists(key, bucket string) bool {
@@ -70,13 +62,13 @@ func getFullResURI(imgPath string) string {
 
 	reqParams := make(url.Values)
 
-	if !checkBucketKeyExists(imgPath, mediaBucket) {
+	if !checkBucketKeyExists(imgPath,config.S3MediaBucket) {
 		log.Warnf("Image %s does not exist", imgPath)
 		return "/static/missing.png"
 	}
 
 	// Generates a presigned url which expires in a hour.
-	presignedURL, err := minioClient.PresignedGetObject(context.Background(), mediaBucket, imgPath, time.Second*1*60*60, reqParams)
+	presignedURL, err := minioClient.PresignedGetObject(context.Background(),config.S3MediaBucket, imgPath, time.Second*1*60*60, reqParams)
 	if err != nil {
 		log.Warn(err)
 		return "/static/missing.png"
@@ -93,16 +85,16 @@ func getThumbnailURI(thumbPath string) string {
 	// reqParams.Set("response-content-disposition", "attachment; filename=\""+ps.ByName("image")+"\"")
 
 	// Check if the real file exists
-	if !checkBucketKeyExists(strings.TrimSuffix(thumbPath, ".jpg"), mediaBucket) {
+	if !checkBucketKeyExists(strings.TrimSuffix(thumbPath, ".jpg"),config.S3MediaBucket) {
 		return "/static/missing.png"
 	}
 
 	// Check if a thumbnail exists
-	if !checkBucketKeyExists(thumbPath, thumbnailBucket) {
+	if !checkBucketKeyExists(thumbPath,config.S3ThumbnailBucket) {
 		return "/static/missing.png"
 	}
 
-	presignedURL, err := minioClient.PresignedGetObject(context.Background(), thumbnailBucket, thumbPath, time.Second*1*60*60, reqParams)
+	presignedURL, err := minioClient.PresignedGetObject(context.Background(), config.S3ThumbnailBucket, thumbPath, time.Second*1*60*60, reqParams)
 	if err != nil {
 		log.Error(err)
 		return "/static/missing.png"

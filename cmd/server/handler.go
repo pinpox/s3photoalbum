@@ -11,15 +11,10 @@ func login(c *gin.Context) {
 	formUser := c.PostForm("username")
 	formPass := c.PostForm("password")
 
-	td := templateData{
-		Context: c,
-		Data: struct {
-			Title string
-			Error string
-		}{
-			Title: "Login",
-			Error: "Authentication failed",
-		},
+	td := gin.H{
+			"context": c,
+			"title": "Login",
+			"error": "Authentication failed",
 	}
 
 	user, err := findUserByUsername(formUser)
@@ -50,7 +45,7 @@ func login(c *gin.Context) {
 	// func (c *Context) SetCookie(name, value string, maxAge int, path, domain string, secure, httpOnly bool)
 	// TODO check parameters
 	// TODO refersh the token before it expires
-	c.SetCookie("token", token, 3600, "/", envHost, true, false)
+	c.SetCookie("token", token, 3600, "/",config.Host, true, false)
 
 	log.Infof("User %s logged in, redirecting to /\n", formUser)
 	c.Redirect(http.StatusSeeOther, "/")

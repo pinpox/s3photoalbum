@@ -79,7 +79,7 @@ func generateToken(user User) (string, error) {
 		UserID:  user.ID,
 		IsAdmin: user.IsAdmin,
 	})
-	tokenString, err := token.SignedString(jwtKey)
+	tokenString, err := token.SignedString([]byte(config.JwtKey))
 	if err != nil {
 		return "", err
 	}
@@ -92,7 +92,7 @@ func validateToken(tokenString string) (authClaims, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
-		return jwtKey, nil
+		return []byte(config.JwtKey), nil
 	})
 	if err != nil {
 		return claims, err

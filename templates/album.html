@@ -1,6 +1,6 @@
 {{template "layout.html" .}}
 
-{{define "title"}}{{.Data.Album}}{{end}}
+{{define "title"}}{{.albumTitle}}{{end}}
 
 {{define "head-extra"}}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/glightbox/dist/css/glightbox.min.css" />
@@ -9,14 +9,14 @@
 
 {{define "content"}}
 
-<h2>{{.Data.Album}}</h2>
+<h2>{{ .albumTitle}}</h2>
 
 <ul class="albumlist">
-		{{range $index, $img := .Data.Images}}
+		{{range $index, $img := .images}}
 
 		<li>
-				<a href="/albums/{{$.Data.Album}}/{{$img}}" class="glightbox">
-						<img class="" src="/thumbnails/{{$.Data.Album}}/{{$img}}.jpg" alt="image" />
+				<a href="/albums/{{$.albumTitle}}/{{$img}}" class="glightbox">
+						<img class="" src="/thumbnails/{{$.albumTitle}}/{{$img}}.jpg" alt="image" />
 				</a>
 		</li>
 		{{else}} <strong>No Images</strong>
