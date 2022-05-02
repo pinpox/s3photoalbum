@@ -97,7 +97,15 @@ in {
           WorkingDirectory = cfg.dataDir;
           ExecStart = "${pkgs.s3photoalbum}/bin/server";
           Restart = "on-failure";
-          Environment = [ "RESOURCES_DIR='${pkgs.s3photoalbum}/share'" ];
+          Environment = [
+            "S3G_RESOURCES_DIR='${pkgs.s3photoalbum}/share'"
+            # Maybe set these here with nix options aswell?
+            # S3G_INITIAL_USER
+            # S3G_INITIAL_PASS
+            # S3G_HOST
+            # S3G_LISTEN_ADDRESS
+            # S3G_LISTEN_PORT
+          ];
         }
         (mkIf (cfg.dataDir == "/var/lib/s3photoalbum") {
           StateDirectory = "s3photoalbum";

@@ -21,7 +21,7 @@ type ServerConfig struct {
 	JwtKey        string `split_words:"true" required:"true"`
 	InitialUser   string `split_words:"true" default:"admin"`
 	InitialPass   string `split_words:"true" default:"admin"`
-	Host          string `split_words:"true" defaulut:"localhost"`
+	Host          string `split_words:"true" default:"localhost"`
 	ListenAddress string `split_words:"true" default:"127.0.0.1"`
 	ListenPort    string `split_words:"true" default:"7788"`
 }
