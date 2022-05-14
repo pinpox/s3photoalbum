@@ -12,21 +12,23 @@
 <h2>{{ .albumTitle}}</h2>
 
 <ul class="albumlist">
-		{{range $index, $img := .images}}
+	{{range $index, $img := .images}}
 
-		<li>
-				<a href="/albums/{{$.albumTitle}}/{{$img}}" class="glightbox">
-						<img class="" src="/thumbnails/{{$.albumTitle}}/{{$img}}.jpg" alt="image" />
-				</a>
-		</li>
-		{{else}} <strong>No Images</strong>
-		{{end}}
-  <li> </li>
+	<li>
+		<a href="/albums/{{$.albumTitle}}/{{$img}}" class="glightbox">
+			<img src="/thumbnails/{{$.albumTitle}}/{{$img}}.jpg" alt="image" />
+		</a>
+	</li>
+	{{else}} <li>  <strong>No Images</strong></li> {{end}}
 </ul>
 
 <script type="text/javascript">
-		var lightbox = GLightbox();
-		lightbox.on('open', (target) => { console.log('lightbox opened'); });
+	var lightbox = GLightbox( { selector:  '.glightbox' });
+	lightbox.on('open', (target) => {
+			console.log('lightbox opened');
+			console.log(target);
+		});
+		console.log("lightbox loaded");
 </script>
 
 {{end}}

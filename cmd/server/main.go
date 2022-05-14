@@ -86,6 +86,7 @@ func main() {
 	_, _ = insertUser(config.InitialUser, initialPassHash, true)
 
 	// Initialize minio client object.
+	log.Infof("CONFIG: %+v", config)
 	minioClient, err = minio.New(config.S3Endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(config.S3AccessKey, config.S3SecretKey, ""),
 		Secure: config.S3UseSsl,

@@ -4,7 +4,7 @@ import (
 	"github.com/kelseyhightower/envconfig"
 )
 
-type commonConfig struct {
+type CommonConfig struct {
 	S3Endpoint        string `split_words:"true" required:"true"`
 	S3AccessKey       string `split_words:"true" required:"true"`
 	S3SecretKey       string `split_words:"true" required:"true"`
@@ -15,7 +15,7 @@ type commonConfig struct {
 }
 
 type ServerConfig struct {
-	commonConfig
+	CommonConfig
 
 	ResourcesDir  string `split_words:"true" default:"."`
 	JwtKey        string `split_words:"true" required:"true"`
@@ -27,7 +27,7 @@ type ServerConfig struct {
 }
 
 type ThumbnailerConfig struct {
-	commonConfig
+	CommonConfig
 	ThumbnailSize         string `split_words:"true" default:"300"`
 	FfmpegThumbnailerPath string `split_words:"true" required:"true"`
 	ExifToolPath          string `split_words:"true" required:"true"`
