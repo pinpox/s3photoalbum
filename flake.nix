@@ -39,7 +39,7 @@
             version = "0.1";
 
             src = ./.;
-            vendorSha256 = "sha256-cMqP+GeHrLNr61lmGC7//qlYbyV15Qoo1c4Rw2VCRjY=";
+            vendorHash = "sha256-cMqP+GeHrLNr61lmGC7//qlYbyV15Qoo1c4Rw2VCRjY=";
             subPackages = [ "cmd/server" "cmd/thumbnailer" ];
             installPhase = ''
               mkdir -p $out/share
